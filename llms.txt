@@ -34,9 +34,15 @@ Everything else the plugin registers is `@internal`.
 - No baseline, no `@psalm-suppress`. If a diagnostic cannot be expressed
   through public Psalm hooks it is dropped from the plan rather than faked.
 
-## What is not implemented yet
+## What it reports
 
-Wrong-kind matchers (`Arg::string()` where the contract says `int`), the type
-of `returns()` against the method's return type, `wire()` shape, cardinality
-invariants and specification-closure shape. Each is listed in the plan (§7);
-none is claimed here until a fixture proves it.
+- `UnderstudyMisuse` — a matcher whose kind the parameter can never accept; a
+  closure specifying nothing, two calls, or a static method; cardinality no
+  run can satisfy; contradictory `verify()` arguments.
+- Psalm's own `InvalidArgument` on `returns()` and `answers()`. The plugin
+  does not check those: it fills in the builder's template parameter from the
+  method being specified, and `WhenBuilder<TReturn>` already declares
+  `returns(TReturn ...)`, so Psalm checks them itself.
+- Psalm's own `InvalidArrayOffset` and method diagnostics on `wire()`, whose
+  shape is read from the named class's constructor. A dynamic class-string is
+  left alone.

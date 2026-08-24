@@ -18,6 +18,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   static method, cardinality bounds no run can satisfy, and `verify()`
   arguments that contradict each other. Each has a fixture, and each has a
   correct neighbour in a control file that must stay silent.
+- `returns()` and `answers()` are checked against the method being specified.
+  The core declares `when(): WhenBuilder<mixed>` and has no choice — the
+  method is only known from the closure — so the plugin fills the template
+  parameter in and Psalm does the checking itself, with its own
+  `InvalidArgument`.
+- `wire()` gives back a shape read from the named class's constructor: an
+  unknown key is an error naming the real ones, and each double is typed as
+  its contract. A dynamic class-string is left alone.
 - Public Psalm API only. `Codebase::methodExists()` and
   `Codebase::getMethodParams()` take a plain `Class::method` string, so
   `Psalm\Internal\MethodIdentifier` and `Methods::getStorage()` — which

@@ -64,6 +64,39 @@ final class MatcherSuppressionIntegrationTest
         Assert::same($this->countIn($report, 'Right.php'), 0);
     }
 
+    public function anAnswerOfTheWrongShapeIsReported(): void
+    {
+        $report = $this->runPsalm('psalm.xml', 'Returns');
+
+        // Not our own diagnostics: filling in the builder's template
+        // parameter is all the plugin does here, and Psalm checks
+        // `returns()`/`answers()` against it on its own.
+        Assert::same($this->countIn($report, 'Wrong.php'), 4);
+        Assert::same(
+            array_values(array_unique(array_map(
+                static fn(array $issue): string => $issue['type'],
+                $report,
+            ))),
+            ['InvalidArgument'],
+        );
+
+        // Answers that fit, and the shapes the provider declines to judge.
+        Assert::same($this->countIn($report, 'Right.php'), 0);
+    }
+
+    public function theWireShapeIsReadFromTheConstructor(): void
+    {
+        $report = $this->runPsalm('psalm.xml', 'Wire');
+
+        $types = array_map(static fn(array $issue): string => $issue['type'], $report);
+
+        // A key the constructor has no parameter for, and a method the
+        // contract behind a key does not have.
+        Assert::true(\in_array('InvalidArrayOffset', $types, strict: true));
+        Assert::true(\in_array('UndefinedInterfaceMethod', $types, strict: true));
+        Assert::same($this->countIn($report, 'Right.php'), 0);
+    }
+
     /**
      * @return list<array{file_name: string, type: string}>
      */

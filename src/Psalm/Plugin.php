@@ -36,9 +36,15 @@ final class Plugin implements PluginEntryPointInterface
         require_once __DIR__ . '/SpecificationScope.php';
         require_once __DIR__ . '/MatcherArgument.php';
         require_once __DIR__ . '/SpecificationRules.php';
+        require_once __DIR__ . '/Internal/BuilderType.php';
+        require_once __DIR__ . '/Internal/WireShape.php';
+        require_once __DIR__ . '/BuilderReturnType.php';
+        require_once __DIR__ . '/StaticBuilderReturnType.php';
 
         $registration->registerHooksFromClass(SpecificationScope::class);
         $registration->registerHooksFromClass(MatcherArgument::class);
         $registration->registerHooksFromClass(SpecificationRules::class);
+        $registration->registerHooksFromClass(BuilderReturnType::class);
+        $registration->registerHooksFromClass(StaticBuilderReturnType::class);
     }
 }

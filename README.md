@@ -43,6 +43,18 @@ The last row is the point. A matcher reaching a real call raises
 `MatcherLeaked` at runtime, and a plugin that hid it would be worse than no
 plugin at all.
 
+## What else it reports
+
+| Reported as | For |
+|---|---|
+| `UnderstudyMisuse` | A matcher whose kind the parameter can never accept. A closure that specifies nothing, or two calls, or calls a static method. Cardinality no run can satisfy. `verify()` arguments that contradict each other. |
+| Psalm's own `InvalidArgument` | `returns()` and `answers()` against the method being specified. The plugin does not check these — it fills in the builder's template parameter, and `WhenBuilder<TReturn>` already declares `returns(TReturn ...)`. Psalm does the rest. |
+| Psalm's own array and method diagnostics | `wire()`, whose shape is read from the named class's constructor: an unknown key is an error, and each double is typed as its contract. A dynamic class-string is left alone. |
+
+Everything the plugin is not sure about stays silent. A false accusation costs
+more than a missed one here, because the engine still catches what static
+analysis misses.
+
 ## API
 
 | Type | Purpose |
