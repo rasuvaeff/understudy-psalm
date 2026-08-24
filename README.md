@@ -37,6 +37,8 @@ The plugin drops that report inside a specification closure, and only there:
 |---|---|
 | `when(fn () => $repo->find(Arg::int()))` | silent |
 | `Understudy::expect(fn () => $repo->find(Arg::any()))` | silent |
+| `Understudy::calls(fn () => $repo->find(Arg::any()))` | silent |
+| `Understudy::verifySequence(fn () => ..., fn () => ...)` | silent |
 | `$repo->find(Arg::int())` — a real call | still an error |
 
 The last row is the point. A matcher reaching a real call raises

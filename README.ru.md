@@ -37,6 +37,8 @@ when(fn () => $repo->find(Arg::int(min: 1)))->returns($book);
 |---|---|
 | `when(fn () => $repo->find(Arg::int()))` | молчит |
 | `Understudy::expect(fn () => $repo->find(Arg::any()))` | молчит |
+| `Understudy::calls(fn () => $repo->find(Arg::any()))` | молчит |
+| `Understudy::verifySequence(fn () => ..., fn () => ...)` | молчит |
 | `$repo->find(Arg::int())` — настоящий вызов | по-прежнему ошибка |
 
 Последняя строка и есть смысл. Матчер, доехавший до настоящего вызова, даёт

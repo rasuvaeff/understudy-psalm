@@ -20,6 +20,15 @@ final class VerbNames
 
     private const array VERBS = ['when', 'expect', 'verify'];
 
+    /**
+     * The static form carries the call-closure readers too. `calls()` and
+     * `verifySequence()` have no free-function spelling, and their closures
+     * take the same matchers `when()` does — found by dogfooding on
+     * yii3-correlation-id, where the matcher in a `calls()` closure was
+     * reported exactly like a leak.
+     */
+    private const array STATIC_VERBS = ['when', 'expect', 'verify', 'calls', 'verifysequence'];
+
     private function __construct() {}
 
     /**
@@ -52,6 +61,6 @@ final class VerbNames
     public static function isStaticCall(string $class, string $method): bool
     {
         return strtolower(ltrim($class, '\\')) === self::NAMESPACE_PREFIX . 'understudy'
-            && \in_array(strtolower($method), self::VERBS, strict: true);
+            && \in_array(strtolower($method), self::STATIC_VERBS, strict: true);
     }
 }

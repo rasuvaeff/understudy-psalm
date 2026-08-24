@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+- The call-closure readers are specification scopes too: a matcher inside
+  `Understudy::calls()` or `Understudy::verifySequence()` no longer reports as
+  an argument-type error. Found by dogfooding the plugin over the migrated
+  `yii3-correlation-id` suite — the matcher in a `calls()` closure was reported
+  exactly like a leak. Both carry fixtures in the Matchers integration
+  project; a matcher in a real call keeps being an error.
 - Initial development. The feasibility gate the plan puts before every other
   rule (§7): a matcher standing in for a typed parameter inside a
   specification closure stops being an argument-type error, and the same

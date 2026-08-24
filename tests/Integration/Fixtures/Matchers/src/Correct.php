@@ -23,4 +23,21 @@ final class Correct
         when(static fn(): bool => $gate->open(Arg::any()));
         Understudy::when(static fn(): bool => $gate->open(Arg::int()));
     }
+
+    /**
+     * The call-closure readers are specification scopes too: `calls()` and
+     * `verifySequence()` take the same closure shape and the same matchers
+     * as `when()` does. Found by dogfooding on yii3-correlation-id: the
+     * matcher in a `calls()` closure was reported exactly like a leak.
+     */
+    public function readBack(): void
+    {
+        $gate = Understudy::for(Gate::class);
+
+        Understudy::calls(static fn(): bool => $gate->open(Arg::any()));
+        Understudy::verifySequence(
+            static fn(): bool => $gate->open(Arg::int()),
+            static fn(): bool => $gate->open(Arg::int(min: 1)),
+        );
+    }
 }
