@@ -1,0 +1,105 @@
+# rasuvaeff/understudy is not released yet: it resolves through a path
+# repository, so vendor/rasuvaeff/understudy is a symlink pointing OUT of this
+# directory. Mounting the package alone leaves that symlink dangling inside the
+# container and every command dies in the autoloader. Mount the monorepo root
+# and work from the package subdirectory instead. When the core is tagged and
+# installs from Packagist, this collapses back to the template's `-v "$(PWD)":/app`.
+ROOT := $(realpath $(CURDIR)/..)
+PKG := $(notdir $(CURDIR))
+DOCKER := docker run --rm -v "$(ROOT)":/repo -w /repo/$(PKG) composer:2
+DOCKER_HOST := docker run --rm --network host -v "$(ROOT)":/repo -w /repo/$(PKG)
+PCOV_BOOTSTRAP := apk add --no-cache $$PHPIZE_DEPS >/dev/null && pecl install pcov >/dev/null && docker-php-ext-enable pcov
+
+.PHONY: bench build cs cs-fix psalm test mutation rector rector-fix install normalize require-checker \
+       test-coverage test-coverage-ci update-deps release-check bc-check audit-package help
+
+install:
+	@# The path repository is set only for the duration of the install and then
+	@# removed again: composer.json must stay release-ready, and a stray
+	@# `repositories` entry would ship with the tag.
+	$(DOCKER) sh -lc 'composer config repositories.understudy path ../understudy; \
+	  composer install --no-interaction --no-progress; status=$$?; \
+	  composer config --unset repositories.understudy; exit $$status'
+
+bench:
+	$(DOCKER) composer bench
+
+build:
+	$(DOCKER) composer build
+
+cs:
+	$(DOCKER) composer cs
+
+cs-fix:
+	$(DOCKER) composer cs:fix
+
+psalm:
+	$(DOCKER) composer psalm
+
+test:
+	$(DOCKER) composer test
+
+test-coverage:
+	$(DOCKER) sh -lc '$(PCOV_BOOTSTRAP) && composer test:coverage'
+
+test-coverage-ci:
+	$(DOCKER) sh -lc '$(PCOV_BOOTSTRAP) && composer test:coverage:ci'
+
+mutation:
+	$(DOCKER) sh -lc '$(PCOV_BOOTSTRAP) && composer mutation'
+
+rector:
+	$(DOCKER) composer rector
+
+rector-fix:
+	$(DOCKER) composer rector:fix
+
+normalize:
+	$(DOCKER) sh -c 'git config --global --add safe.directory /app; composer normalize'
+
+require-checker:
+	$(DOCKER) composer require-checker
+
+update-deps:
+	$(DOCKER) sh -c 'git config --global --add safe.directory /app; composer update -q; composer normalize'
+
+# composer's release-check chain ends in bc-check, which shells out to git —
+# without safe.directory the container's git refuses the bind-mounted repo
+# ("dubious ownership") and the whole target dies with exit 128
+release-check:
+	$(DOCKER) sh -c 'git config --global --add safe.directory "*"; composer release-check'
+	$(MAKE) mutation
+
+bc-check:
+	$(DOCKER) sh -c 'git config --global --add safe.directory "*"; \
+	  LATEST=$$(git describe --tags --abbrev=0 2>/dev/null || true); \
+	  if [ -n "$$LATEST" ]; then \
+	    composer bc-check -- --from=$$LATEST; \
+	  else \
+	    echo "No previous tag - skipping BC check"; \
+	  fi'
+
+help:
+	@echo "Usage: make <target>"
+	@echo ""
+	@echo "Targets:"
+	@echo "  install          composer install"
+	@echo "  bench            run benchmarks (Benchmarks suite)"
+	@echo "  build            full gate (validate + normalize + cs + psalm + test)"
+	@echo "  cs               check code style (dry-run)"
+	@echo "  cs-fix           fix code style"
+	@echo "  psalm            static analysis"
+	@echo "  test             run testo (Unit suite)"
+	@echo "  test-coverage    run testo with coverage"
+	@echo "  test-coverage-ci run testo coverage for CI artifacts"
+	@echo "  mutation         mutation testing"
+	@echo "  rector           check rector (dry-run)"
+	@echo "  rector-fix       apply rector fixes"
+	@echo "  normalize        normalize composer.json"
+	@echo "  require-checker  check composer dependencies"
+	@echo "  update-deps      composer update + normalize"
+	@echo "  bc-check         check backward compatibility against latest tag"
+	@echo "  release-check    build + rector + bc-check + mutation"
+
+audit-package:
+	@if [ -f ../bin/package-audit ]; then bash ../bin/package-audit "$(CURDIR)"; else echo "package-audit: available only inside the monorepo"; fi

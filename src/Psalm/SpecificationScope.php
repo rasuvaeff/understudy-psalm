@@ -1,0 +1,98 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Rasuvaeff\Understudy\Psalm;
+
+use PhpParser\Node\Expr\FuncCall;
+use PhpParser\Node\Expr\StaticCall;
+use PhpParser\Node\Identifier;
+use PhpParser\Node\Name;
+use Psalm\Plugin\EventHandler\BeforeExpressionAnalysisInterface;
+use Psalm\Plugin\EventHandler\Event\BeforeExpressionAnalysisEvent;
+use Rasuvaeff\Understudy\Psalm\Internal\ScopeIndex;
+use Rasuvaeff\Understudy\Psalm\Internal\VerbNames;
+
+/**
+ * Records where a specification call is, so a diagnostic raised inside one
+ * can be told apart from the same diagnostic anywhere else.
+ *
+ * Recorded BEFORE the expression is analysed, and that is not a preference:
+ * the argument issues this plugin has an opinion about are raised WHILE the
+ * call is analysed, so `AfterFunctionCallAnalysis` and every other
+ * after-hook is already too late to have seen them.
+ *
+ * @internal
+ */
+final class SpecificationScope implements BeforeExpressionAnalysisInterface
+{
+    private static ?ScopeIndex $index = null;
+
+    #[\Override]
+    public static function beforeExpressionAnalysis(BeforeExpressionAnalysisEvent $event): ?bool
+    {
+        $expression = $event->getExpr();
+
+        if (!self::isSpecificationCall($expression)) {
+            return null;
+        }
+
+        self::index()->record(
+            $event->getStatementsSource()->getFilePath(),
+            $expression->getStartLine(),
+            $expression->getEndLine(),
+        );
+
+        return null;
+    }
+
+    public static function index(): ScopeIndex
+    {
+        return self::$index ??= new ScopeIndex();
+    }
+
+    /**
+     * Forgets every recorded range. A real run analyses each file once; this
+     * is for tests driving the handlers in sequence.
+     */
+    public static function reset(): void
+    {
+        self::$index = null;
+    }
+
+    /**
+     * The name as Psalm resolved it, falling back to what was written.
+     *
+     * `use Rasuvaeff\\Understudy\\Understudy;` then `Understudy::when()` parses
+     * as the bare name `Understudy`, and only the resolver knows which class
+     * that is. Reading the written name alone would silently skip the static
+     * form — which is the form Pest users are told to reach for, because Pest
+     * owns the global `expect()`.
+     */
+    private static function resolvedName(Name $name): string
+    {
+        // Read out of the attribute bag rather than through getAttribute(),
+        // which is declared `mixed`: assigning that needs a `@var` annotation
+        // to satisfy psalm, and rector then removes the annotation as
+        // useless. An array offset narrows on its own, so neither gate has an
+        // opinion.
+        $attributes = $name->getAttributes();
+
+        return isset($attributes['resolvedName']) && \is_string($attributes['resolvedName'])
+            ? $attributes['resolvedName']
+            : $name->toString();
+    }
+
+    private static function isSpecificationCall(object $expression): bool
+    {
+        if ($expression instanceof FuncCall) {
+            return $expression->name instanceof Name
+                && VerbNames::isFunction(self::resolvedName($expression->name));
+        }
+
+        return $expression instanceof StaticCall
+            && $expression->class instanceof Name
+            && $expression->name instanceof Identifier
+            && VerbNames::isStaticCall(self::resolvedName($expression->class), $expression->name->toString());
+    }
+}

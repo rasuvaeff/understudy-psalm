@@ -1,0 +1,42 @@
+# rasuvaeff/understudy-psalm
+
+Psalm plugin for `rasuvaeff/understudy`. Pre-release: the diagnostics are not
+stable until v0.1.0.
+
+## Install
+
+```bash
+composer require --dev rasuvaeff/understudy-psalm
+vendor/bin/psalm-plugin enable rasuvaeff/understudy-psalm
+```
+
+Namespace: `Rasuvaeff\Understudy\Psalm`. Requires PHP 8.3 - 8.5 and
+`vimeo/psalm ^6.16`.
+
+## API
+
+- `Rasuvaeff\Understudy\Psalm\Plugin` — the entry point, registered through `extra.psalm.pluginClass`.
+- `Rasuvaeff\Understudy\Psalm\Issue\UnderstudyMisuse` — the issue every diagnostic is reported as.
+
+Everything else the plugin registers is `@internal`.
+
+## Rules
+
+- The plugin exists because `Arg::*()` is declared `mixed`: a matcher has to
+  be passable wherever a contract declares anything at all. Inside a
+  specification closure that is correct and Psalm cannot know it.
+- Suppression is narrow by construction. Three things must hold: the issue is
+  argument-shaped, its location is inside a `when()` / `expect()` / `verify()`
+  call (the free functions or the `Understudy::` static form), and the text
+  Psalm complained about is an `Arg::` matcher.
+- A matcher passed to a REAL call is still reported. That is `MatcherLeaked`
+  at runtime, and hiding it would make the plugin worse than none.
+- No baseline, no `@psalm-suppress`. If a diagnostic cannot be expressed
+  through public Psalm hooks it is dropped from the plan rather than faked.
+
+## What is not implemented yet
+
+Wrong-kind matchers (`Arg::string()` where the contract says `int`), the type
+of `returns()` against the method's return type, `wire()` shape, cardinality
+invariants and specification-closure shape. Each is listed in the plan (§7);
+none is claimed here until a fixture proves it.
