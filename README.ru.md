@@ -71,6 +71,15 @@ when(fn () => $repo->find(Arg::int(min: 1)))->returns($book);
 | `UnderstudyMisuse` | Issue, которым сообщается любая диагностика плагина. Один тип, а не по одному на правило: понимать пользователю нужно «understudy проверяет мои спецификации или нет», а необходимость глушить каждое правило отдельно была бы контрактом хуже, чем не глушить ничего. |
 | `Plugin` | Точка входа, которую загружает Psalm; регистрируется через `extra.psalm.pluginClass`. Больше в пакете ничего публичного нет — хуки, которые он регистрирует, помечены `@internal`, и их решения — это поведение плагина, а не его API. |
 
+## Семейство understudy
+
+| Пакет | Что это |
+|---|---|
+| [rasuvaeff/understudy](https://github.com/rasuvaeff/understudy) | Движок: дубли, матчеры, ожидания, верификация. |
+| [rasuvaeff/understudy-testo](https://github.com/rasuvaeff/understudy-testo) | Testo-адаптер — верификация и сброс вокруг каждого теста. |
+| [rasuvaeff/understudy-phpunit](https://github.com/rasuvaeff/understudy-phpunit) | Адаптер для PHPUnit и Pest — то же самое, через трейт. |
+| **rasuvaeff/understudy-psalm** *(этот пакет)* | Psalm-плагин — спецификации с матчерами и диагностики ошибок. |
+
 ## Разработка
 
 ```bash
