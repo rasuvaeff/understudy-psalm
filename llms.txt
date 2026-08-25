@@ -1,7 +1,6 @@
 # rasuvaeff/understudy-psalm
 
-Psalm plugin for `rasuvaeff/understudy`. Pre-release: the diagnostics are not
-stable until v0.1.0.
+Psalm plugin for `rasuvaeff/understudy`.
 
 ## Install
 

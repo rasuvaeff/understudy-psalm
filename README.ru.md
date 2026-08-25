@@ -1,10 +1,17 @@
 # rasuvaeff/understudy-psalm
 
+[![Latest Stable Version](https://poser.pugx.org/rasuvaeff/understudy-psalm/v)](https://packagist.org/packages/rasuvaeff/understudy-psalm)
+[![Total Downloads](https://poser.pugx.org/rasuvaeff/understudy-psalm/downloads)](https://packagist.org/packages/rasuvaeff/understudy-psalm)
+[![Build](https://github.com/rasuvaeff/understudy-psalm/actions/workflows/build.yml/badge.svg)](https://github.com/rasuvaeff/understudy-psalm/actions/workflows/build.yml)
+[![Static analysis](https://github.com/rasuvaeff/understudy-psalm/actions/workflows/static-analysis.yml/badge.svg)](https://github.com/rasuvaeff/understudy-psalm/actions/workflows/static-analysis.yml)
+[![Psalm level](https://img.shields.io/badge/psalm-level_1-blue.svg)](https://github.com/rasuvaeff/understudy-psalm/actions/workflows/static-analysis.yml)
+[![PHP](https://img.shields.io/packagist/dependency-v/rasuvaeff/understudy-psalm/php)](https://packagist.org/packages/rasuvaeff/understudy-psalm)
+[![License](https://img.shields.io/badge/license-BSD--3--Clause-blue.svg)](LICENSE.md)
+[English version](README.md)
+
 Psalm-плагин для [understudy](https://github.com/rasuvaeff/understudy).
 
 > Работаете с AI-ассистентом? Дайте ему [llms.txt](llms.txt).
-
-**Пре-релиз.** Диагностики не стабильны до v0.1.0.
 
 ## Требования
 

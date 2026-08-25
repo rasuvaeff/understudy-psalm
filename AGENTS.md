@@ -27,9 +27,7 @@ through `extra.psalm.pluginClass`.
 
 ## Commands
 
-No PHP/Composer on the host — run in Docker via the `composer:2` image. The
-core is unreleased and resolves through a path repository, so the Makefile
-mounts the monorepo root; see its header.
+No PHP/Composer on the host — run in Docker via the `composer:2` image.
 
 ```bash
 make install
