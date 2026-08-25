@@ -79,6 +79,7 @@ analysis misses.
 | [rasuvaeff/understudy-testo](https://github.com/rasuvaeff/understudy-testo) | Testo adapter — verification and reset around every test. |
 | [rasuvaeff/understudy-phpunit](https://github.com/rasuvaeff/understudy-phpunit) | PHPUnit and Pest adapter — the same, through a trait. |
 | **rasuvaeff/understudy-psalm** *(this package)* | Psalm plugin — matcher-aware specifications and misuse diagnostics. |
+| [rasuvaeff/understudy-phpstan](https://github.com/rasuvaeff/understudy-phpstan) | PHPStan extension — the same for PHPStan, plus its own rules. |
 
 ## Development
 
