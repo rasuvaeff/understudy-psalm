@@ -21,13 +21,15 @@ final class VerbNames
     private const array VERBS = ['when', 'expect', 'verify'];
 
     /**
-     * The static form carries the call-closure readers too. `calls()` and
-     * `verifySequence()` have no free-function spelling, and their closures
-     * take the same matchers `when()` does — found by dogfooding on
-     * yii3-correlation-id, where the matcher in a `calls()` closure was
-     * reported exactly like a leak.
+     * The static form carries the call-closure readers too. `calls()`,
+     * `lastCall()` and `verifySequence()` have no free-function spelling, and
+     * their closures take the same matchers `when()` does — found by
+     * dogfooding on yii3-correlation-id, where the matcher in a `calls()`
+     * closure was reported exactly like a leak. A reader added to the core
+     * belongs in this list the day it is added: `lastCall()` arrived after
+     * the plugin was written and was silently outside every rule until now.
      */
-    private const array STATIC_VERBS = ['when', 'expect', 'verify', 'calls', 'verifysequence'];
+    private const array STATIC_VERBS = ['when', 'expect', 'verify', 'calls', 'lastcall', 'verifysequence'];
 
     private function __construct() {}
 

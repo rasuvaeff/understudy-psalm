@@ -61,4 +61,30 @@ final class Wrong
 
         verify(static fn(): bool => $gate->open(1), times: 3, minimum: 1);
     }
+
+    /**
+     * A reader is a specification too. `lastCall()` was added to the core
+     * after this plugin was written, and until it was listed as a verb this
+     * line drew nothing at all.
+     */
+    public function wrongKindOfMatcherInAReader(): void
+    {
+        $gate = Understudy::for(Gate::class);
+
+        Understudy::lastCall(static fn(): bool => $gate->open(Arg::string()));
+    }
+
+    /**
+     * The third step of a protocol is as checkable as the first — and used
+     * to be checked in neither: only the first argument was ever read.
+     */
+    public function wrongKindOfMatcherLaterInASequence(): void
+    {
+        $gate = Understudy::for(Gate::class);
+
+        Understudy::verifySequence(
+            static fn(): bool => $gate->open(1),
+            static fn(): bool => $gate->open(Arg::string()),
+        );
+    }
 }

@@ -48,8 +48,8 @@ final class MatcherSuppressionIntegrationTest
     {
         $report = $this->runPsalm('psalm.xml', 'Misuse');
 
-        // Six mistakes, six reports, all of them ours.
-        Assert::same($this->countIn($report, 'Wrong.php'), 6);
+        // Eight mistakes, eight reports, all of them ours.
+        Assert::same($this->countIn($report, 'Wrong.php'), 8);
         Assert::same(
             array_values(array_unique(array_map(
                 static fn(array $issue): string => $issue['type'],

@@ -35,6 +35,7 @@ final class Correct
         $gate = Understudy::for(Gate::class);
 
         Understudy::calls(static fn(): bool => $gate->open(Arg::any()));
+        Understudy::lastCall(static fn(): bool => $gate->open(Arg::int(min: 1)));
         Understudy::verifySequence(
             static fn(): bool => $gate->open(Arg::int()),
             static fn(): bool => $gate->open(Arg::int(min: 1)),

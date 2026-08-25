@@ -107,16 +107,26 @@ final class SpecificationRules implements AfterExpressionAnalysisInterface
         StatementsSource $source,
     ): void {
         $arguments = array_values($call->getArgs());
-        $closure = $arguments[0]->value ?? null;
 
-        if ($closure === null) {
+        // Every closure argument, not the first one: `verifySequence()` takes
+        // a whole protocol, and a mistake in its third step is the same
+        // mistake as in its first. The non-closure arguments of `verify()`
+        // are the cardinality, checked below.
+        $closures = array_values(array_filter(
+            array_map(static fn(Arg $argument): Expr => $argument->value, $arguments),
+            static fn(Expr $value): bool => $value instanceof Closure || $value instanceof ArrowFunction,
+        ));
+
+        if ($closures === []) {
             return;
         }
 
-        $problem = ClosureShape::of($closure)->problem();
+        foreach ($closures as $closure) {
+            $problem = ClosureShape::of($closure)->problem();
 
-        if ($problem !== null) {
-            self::report($problem, $closure, $source);
+            if ($problem !== null) {
+                self::report($problem, $closure, $source);
+            }
         }
 
         if (self::verbOf($call) === 'verify') {
@@ -127,7 +137,9 @@ final class SpecificationRules implements AfterExpressionAnalysisInterface
             }
         }
 
-        self::checkMatchers($closure, $event, $source);
+        foreach ($closures as $closure) {
+            self::checkMatchers($closure, $event, $source);
+        }
     }
 
     /**

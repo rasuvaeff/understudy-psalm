@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+- `Understudy::lastCall()` is a specification verb. It was added to the core
+  after this plugin was written, so its closure was outside every rule: no
+  matcher suppression and no misuse diagnostics. A reader added to the core
+  belongs in `VerbNames::STATIC_VERBS` the day it lands.
+- Every closure argument of a specification is checked, not only the first.
+  A wrong-kind matcher in the third step of a `verifySequence()` protocol was
+  as silent as the first step was loud.
 - The call-closure readers are specification scopes too: a matcher inside
   `Understudy::calls()` or `Understudy::verifySequence()` no longer reports as
   an argument-type error. Found by dogfooding the plugin over the migrated
