@@ -23,6 +23,7 @@ use Psalm\StatementsSource;
 use Psalm\Type\Atomic\TNamedObject;
 use Rasuvaeff\Understudy\Psalm\Internal\Cardinality;
 use Rasuvaeff\Understudy\Psalm\Internal\ClosureShape;
+use Rasuvaeff\Understudy\Psalm\Internal\MatcherClass;
 use Rasuvaeff\Understudy\Psalm\Internal\MatcherKind;
 use Rasuvaeff\Understudy\Psalm\Internal\VerbNames;
 use Rasuvaeff\Understudy\Psalm\Issue\UnderstudyMisuse;
@@ -286,6 +287,11 @@ final class SpecificationRules implements AfterExpressionAnalysisInterface
 
     /**
      * The `Arg::` method name, when the expression is a matcher.
+     *
+     * Read through the resolver, like every other name this rule looks at. A
+     * short-name comparison claimed anybody's class whose name ends in `Arg`
+     * and lost our own the moment a file imported it under another name — a
+     * false accusation and a missed check, both in the consumer's code.
      */
     private static function matcherName(Expr $expression): ?string
     {
@@ -293,11 +299,9 @@ final class SpecificationRules implements AfterExpressionAnalysisInterface
             return null;
         }
 
-        $class = $expression->class->toString();
-        $separator = strrpos($class, '\\');
-        $short = $separator === false ? $class : substr($class, $separator + 1);
-
-        if ($short !== 'Arg' || !$expression->name instanceof Identifier) {
+        if (!MatcherClass::isOurs(self::resolvedName($expression->class))
+            || !$expression->name instanceof Identifier
+        ) {
             return null;
         }
 

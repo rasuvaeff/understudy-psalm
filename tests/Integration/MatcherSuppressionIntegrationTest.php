@@ -98,6 +98,63 @@ final class MatcherSuppressionIntegrationTest
     }
 
     /**
+     * Which `Arg` a rule acts on is decided by the resolver, not by the last
+     * segment of the written name. Both directions used to be wrong, and both
+     * landed in the consumer's own code.
+     */
+    public function aNamesakeIsNotClaimedAndAnAliasIsStillOurs(): void
+    {
+        $report = $this->runPsalm('psalm.xml', 'Namesake');
+
+        $ours = static fn(string $file): array => array_values(array_filter(
+            $report,
+            static fn(array $issue): bool => str_ends_with($issue['file_name'], $file)
+                && $issue['type'] === 'UnderstudyMisuse',
+        ));
+
+        // `Fixture\Namesake\Other\Arg` is somebody else's class that happens
+        // to be named `Arg`. Its methods are not matchers, and judging one
+        // against a parameter was a false accusation about code that has
+        // nothing to do with this package.
+        Assert::same($ours('Foreign.php'), []);
+
+        // Our own `Arg`, imported as `Matcher`. The short name is gone, the
+        // class is not: a string matcher in an `int` parameter is a real
+        // mistake and is now reported as one.
+        Assert::same(\count($ours('Aliased.php')), 1);
+    }
+
+    /**
+     * What text alone cannot decide, stated rather than implied.
+     *
+     * `beforeAddIssue` is handed the reported source selection and nothing
+     * else, so an unqualified `Arg::` cannot be traced to a class: a foreign
+     * one is silenced along with ours, and ours under an alias is not
+     * silenced at all. The AST rules above are unaffected — they read the
+     * resolver — which is why the misuse verdicts are right in both files
+     * while these two argument diagnostics are not.
+     */
+    public function theSuppressionHookStillJudgesByText(): void
+    {
+        $report = $this->runPsalm('psalm.xml', 'Namesake');
+
+        $types = static fn(string $file): array => array_values(array_map(
+            static fn(array $issue): string => $issue['type'],
+            array_filter($report, static fn(array $issue): bool => str_ends_with($issue['file_name'], $file)),
+        ));
+
+        // Foreign, unqualified, inside a specification closure: its own
+        // InvalidScalarArgument is dropped, as the control run shows it would
+        // otherwise be raised.
+        Assert::same($types('Foreign.php'), []);
+        Assert::true($this->countIn($this->runPsalm('psalm-without-plugin.xml', 'Namesake'), 'Foreign.php') > 0);
+
+        // Ours under an alias: recognised by the rule, unrecognised by the
+        // hook, so the argument diagnostic survives next to the misuse.
+        Assert::true(\in_array('MixedArgument', $types('Aliased.php'), strict: true));
+    }
+
+    /**
      * @return list<array{file_name: string, type: string}>
      */
     private function runPsalm(string $config, string $fixture = 'Matchers'): array

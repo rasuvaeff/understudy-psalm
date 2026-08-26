@@ -44,6 +44,13 @@ final class MatcherTextTest
         // Namesakes: neither is ours, and both would be silenced by a looser
         // test than this one.
         yield 'a class whose name ends in Arg' => ['MyArg::any()', false];
+        // Somebody else's class actually called `Arg`, under its own
+        // namespace: accepted while any prefix was allowed in front of the
+        // name, so a real diagnostic about their code was dropped.
+        yield 'a foreign Arg under its own namespace' => ['Acme\\Console\\Arg::string()', false];
+        yield 'a foreign Arg with a leading separator' => ['\\Acme\\Arg::string()', false];
+        // Class names are case-insensitive in PHP, and so is this.
+        yield 'our own, lowercased' => ['arg::any()', true];
         yield 'a variable holding a class name' => ['$arg::any()', false];
         yield 'a constant, not a call' => ['Arg::ANY', false];
     }
