@@ -51,6 +51,14 @@ make test-integration
 - **`SpecificationScope` holds static state** across a run. That is fine for
   Psalm, which analyses each file once, and `reset()` exists for tests that
   drive the handlers directly.
+- **Every gate here reads the working tree; a consumer downloads
+  `git archive`.** Between the two there is `export-ignore` and nothing else, so
+  a file that should not ship reaches users without reddening anything. The
+  `Consumer smoke` job installs a dist archive of the commit into a throwaway
+  project, takes the engine from Packagist the way a user does, and drives the plugin from a consumer `psalm.xml`.
+  The script itself lives in the core repository (`understudy/bin/consumer-smoke`) —
+  one copy, checked out by this workflow; run the whole family from local
+  checkouts with `bin/understudy-consumer-smoke` in the workspace repository.
 - **CI workflows are SHA-pinned**; never revert to floating `@vN` tags.
 
 ## When you finish
