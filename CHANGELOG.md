@@ -13,6 +13,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   one, refusing to create the GitHub Release. Hit for real on the core package
   while tagging `v0.1.1`. No effect on the package itself.
 
+- **Fixed: a matcher was recognised by its short class name.** Anybody's
+  `Acme\Console\Arg` was claimed as ours — its static calls judged against the
+  parameter they were passed to, and reported as a misuse of a package the
+  project may not even use — while our own `Arg`, imported under another name,
+  stopped being recognised at all. Both are decided by the resolved class now,
+  as `understudy-phpstan` already did it.
+- The text heuristic behind the suppression hook no longer accepts a foreign
+  namespace in front of `Arg`. What it still cannot decide, because it is
+  handed a source selection rather than a node, is an unqualified `Arg::` in a
+  file that imported somebody else's class under that name — stated in the
+  code and pinned by a fixture rather than left to be discovered.
+
 ## 0.1.0 — 2026-08-25
 
 - `Understudy::lastCall()` is a specification verb. It was added to the core

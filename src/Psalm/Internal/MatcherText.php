@@ -18,11 +18,17 @@ namespace Rasuvaeff\Understudy\Psalm\Internal;
 final class MatcherText
 {
     /**
-     * `Arg` possibly qualified, then `::`, a method name and an opening
-     * parenthesis. The leading boundary stops `MyArg::` and `$arg::` from
-     * passing as ours.
+     * `Arg` unqualified or under its own namespace, then `::`, a method name
+     * and an opening parenthesis. The leading boundary stops `MyArg::`,
+     * `$arg::` and `Acme\Arg::` from passing as ours — the last of those used
+     * to, because any namespace was accepted in front of the name.
+     *
+     * What text alone still cannot decide is an unqualified `Arg::` in a file
+     * that imported somebody else's class under that name. The AST rules read
+     * the resolver and are not affected; this hook is handed a selection of
+     * source and nothing else, which is why it stays narrow.
      */
-    private const string MATCHER = '/(?<![\w$])(?:\\\\?[A-Za-z_][\w]*\\\\)*Arg\s*::\s*[A-Za-z_]\w*\s*\(/';
+    private const string MATCHER = '/(?<![\w$\\\\])(?:\\\\?Rasuvaeff\\\\Understudy\\\\)?Arg\s*::\s*[A-Za-z_]\w*\s*\(/i';
 
     private function __construct() {}
 
