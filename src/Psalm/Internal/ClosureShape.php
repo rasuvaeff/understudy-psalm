@@ -68,6 +68,19 @@ final class ClosureShape
                 }
 
                 if ($node instanceof MethodCall || $node instanceof NullsafeMethodCall) {
+                    // A captor's `->capture()` is a matcher in method-call
+                    // clothes, not a call being specified: during recording
+                    // it runs for real on the Captor and hands the matcher
+                    // over, exactly like an `Arg::` factory. Zero arguments
+                    // by contract, which is what keeps this narrow.
+                    if (
+                        $node->name instanceof Node\Identifier
+                        && $node->name->toLowerString() === 'capture'
+                        && $node->getArgs() === []
+                    ) {
+                        return null;
+                    }
+
                     ++$this->methodCalls;
                 }
 

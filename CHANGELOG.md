@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+- The `rasuvaeff/understudy` floor rises to `^0.4`: the fixtures that prove
+  the new behaviour are written in the 0.4 idioms, and a lowest-versions run
+  against 0.1 would be proving nothing. Consumers on an older understudy stay
+  on the 0.1.x line of this package.
+- **understudy 0.4 idioms** (rasuvaeff/understudy-psalm#11): `TooFewArguments`
+  goes quiet on a call inside a specification whose last written argument is
+  `Arg::rest()` — both conditions AST-resolved, so a real call ending in
+  `Arg::rest()` keeps its arity report on top of the runtime
+  `ArgumentCountError`. A captor's `$captor->capture()` is recognised as a
+  matcher: its argument-type report is dropped inside a specification, it no
+  longer counts against "exactly one call per closure", and a capture leaked
+  into a real call is still reported.
+
 ## 0.1.4 — 2026-08-28
 
 - Allow `rasuvaeff/understudy` `^0.4`: `Arg::rest()`, `Arg::captor()`,

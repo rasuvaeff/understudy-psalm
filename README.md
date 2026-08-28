@@ -52,6 +52,19 @@ The last row is the point. A matcher reaching a real call raises
 `MatcherLeaked` at runtime, and a plugin that hid it would be worse than no
 plugin at all.
 
+Two understudy 0.4 idioms are covered the same way:
+
+- **`Arg::rest()`** legitimately passes fewer arguments than the contract
+  declares — `when(fn () => $storage->recordOutcome('svc', Arg::rest()))` —
+  so `TooFewArguments` goes quiet on that call, but only when the call sits
+  inside a specification *and* its last written argument is `Arg::rest()`. A
+  real call ending in `Arg::rest()` is under-arity for real (the engine
+  answers it with `ArgumentCountError`) and keeps both reports.
+- **`Arg::captor()`**'s `$captor->capture()` is a matcher in method-call
+  clothes: its argument-type report goes quiet inside a specification, it
+  does not count against "exactly one call per closure", and a capture leaked
+  into a real call keeps its report.
+
 ## What else it reports
 
 | Reported as | For |

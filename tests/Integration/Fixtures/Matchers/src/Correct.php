@@ -25,6 +25,33 @@ final class Correct
     }
 
     /**
+     * `Arg::rest()` legitimately passes fewer arguments than the contract
+     * declares — "the arguments before me matter, the rest of the arity does
+     * not" (understudy 0.4). Both the arity report and the matcher's own
+     * argument report must go quiet here, and only here.
+     */
+    public function prefixSpecification(): void
+    {
+        $gate = Understudy::for(Gate::class);
+
+        when(static fn() => $gate->record('svc', Arg::rest()));
+        when(static fn() => $gate->record(Arg::rest()));
+    }
+
+    /**
+     * A captor's `->capture()` is a matcher written as a method call on the
+     * `Captor` that `Arg::captor()` handed back — `capture(): mixed` into a
+     * typed parameter must go quiet inside a specification.
+     */
+    public function captorSpecification(): void
+    {
+        $gate = Understudy::for(Gate::class);
+        $codes = Arg::captor();
+
+        when(static fn(): bool => $gate->open($codes->capture()));
+    }
+
+    /**
      * The call-closure readers are specification scopes too: `calls()` and
      * `verifySequence()` take the same closure shape and the same matchers
      * as `when()` does. Found by dogfooding on yii3-correlation-id: the
