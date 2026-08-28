@@ -27,8 +27,10 @@ use Rasuvaeff\Understudy\Psalm\Internal\MatcherText;
 final class MatcherArgument implements BeforeAddIssueInterface
 {
     /**
-     * Only argument-shaped issues. A `TooFewArguments` or an undefined method
-     * inside the same closure is a real mistake and keeps its report.
+     * Only argument-shaped issues. An undefined method inside the same
+     * closure is a real mistake and keeps its report. `TooFewArguments` is
+     * handled apart, because its legitimacy hangs on `Arg::rest()` rather
+     * than on the offending argument's own text.
      */
     private const array SUPPRESSED = [
         'InvalidArgument',
@@ -40,16 +42,31 @@ final class MatcherArgument implements BeforeAddIssueInterface
         'InvalidScalarArgument',
     ];
 
+    private const string TOO_FEW = 'TooFewArguments';
+
     #[\Override]
     public static function beforeAddIssue(BeforeAddIssueEvent $event): ?bool
     {
         $issue = $event->getIssue();
+        $type = $issue::getIssueType();
+        $location = $issue->code_location;
 
-        if (!\in_array($issue::getIssueType(), self::SUPPRESSED, strict: true)) {
-            return null;
+        // `Arg::rest()` is "the arguments before me matter, the rest of the
+        // arity does not" — the engine materialises the omitted parameters
+        // with a sentinel, so inside a specification the short call is the
+        // idiom, not a mistake. Both indexes must agree: a real call ending
+        // in `Arg::rest()` sits outside every specification range and keeps
+        // its report, on top of the leak the engine raises at runtime.
+        if ($type === self::TOO_FEW) {
+            return SpecificationScope::index()->covers($location->file_path, $location->getLineNumber())
+                && SpecificationScope::restCalls()->covers($location->file_path, $location->getLineNumber())
+                ? false
+                : null;
         }
 
-        $location = $issue->code_location;
+        if (!\in_array($type, self::SUPPRESSED, strict: true)) {
+            return null;
+        }
 
         if (!SpecificationScope::index()->covers($location->file_path, $location->getLineNumber())) {
             return null;

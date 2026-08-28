@@ -30,6 +30,13 @@ Everything else the plugin registers is `@internal`.
   Psalm complained about is an `Arg::` matcher.
 - A matcher passed to a REAL call is still reported. That is `MatcherLeaked`
   at runtime, and hiding it would make the plugin worse than none.
+- `Arg::rest()` (understudy 0.4) legitimately passes fewer arguments than the
+  contract declares: `TooFewArguments` goes quiet only when the call is
+  inside a specification AND its last written argument is `Arg::rest()`. A
+  real call ending in `Arg::rest()` keeps both reports.
+- `$captor->capture()` (understudy 0.4, `Arg::captor()`) is a matcher too:
+  its argument report goes quiet inside a specification, it does not count
+  against "exactly one call per closure", and a leaked capture is reported.
 - No baseline, no `@psalm-suppress`. If a diagnostic cannot be expressed
   through public Psalm hooks it is dropped from the plan rather than faked.
 

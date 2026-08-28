@@ -53,5 +53,16 @@ final class MatcherTextTest
         yield 'our own, lowercased' => ['arg::any()', true];
         yield 'a variable holding a class name' => ['$arg::any()', false];
         yield 'a constant, not a call' => ['Arg::ANY', false];
+
+        // A captor's capture() is a matcher in method-call clothes — the one
+        // matcher produced by a method call rather than an `Arg::` factory.
+        yield 'a capture on a captor' => ['$options->capture()', true];
+        yield 'a capture, spaced out' => ['$options -> capture ( )', true];
+        yield 'a capture on a property' => ['$this->codes->capture()', true];
+        // With arguments it is not our capture(): the contract takes none,
+        // and a foreign method that happens to share the name keeps its
+        // diagnostic where the parentheses are not empty.
+        yield 'a capture with an argument' => ['$camera->capture($frame)', false];
+        yield 'a static capture is not ours' => ['Camera::capture()', false];
     }
 }

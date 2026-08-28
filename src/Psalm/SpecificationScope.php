@@ -5,11 +5,14 @@ declare(strict_types=1);
 namespace Rasuvaeff\Understudy\Psalm;
 
 use PhpParser\Node\Expr\FuncCall;
+use PhpParser\Node\Expr\MethodCall;
+use PhpParser\Node\Expr\NullsafeMethodCall;
 use PhpParser\Node\Expr\StaticCall;
 use PhpParser\Node\Identifier;
 use PhpParser\Node\Name;
 use Psalm\Plugin\EventHandler\BeforeExpressionAnalysisInterface;
 use Psalm\Plugin\EventHandler\Event\BeforeExpressionAnalysisEvent;
+use Rasuvaeff\Understudy\Psalm\Internal\MatcherClass;
 use Rasuvaeff\Understudy\Psalm\Internal\ScopeIndex;
 use Rasuvaeff\Understudy\Psalm\Internal\VerbNames;
 
@@ -28,10 +31,24 @@ final class SpecificationScope implements BeforeExpressionAnalysisInterface
 {
     private static ?ScopeIndex $index = null;
 
+    private static ?ScopeIndex $restCalls = null;
+
     #[\Override]
     public static function beforeExpressionAnalysis(BeforeExpressionAnalysisEvent $event): ?bool
     {
         $expression = $event->getExpr();
+
+        if (self::endsWithRest($expression)) {
+            // Recorded for every call, specification or not: at this point
+            // the enclosing `when()` may not have been recorded yet, and the
+            // suppression hook requires BOTH indexes to agree, so a real call
+            // ending in `Arg::rest()` keeps its arity report either way.
+            self::restCalls()->record(
+                $event->getStatementsSource()->getFilePath(),
+                $expression->getStartLine(),
+                $expression->getEndLine(),
+            );
+        }
 
         if (!self::isSpecificationCall($expression)) {
             return null;
@@ -52,12 +69,55 @@ final class SpecificationScope implements BeforeExpressionAnalysisInterface
     }
 
     /**
+     * Where the calls whose last written argument is `Arg::rest()` are — the
+     * one matcher that makes passing fewer arguments than the contract
+     * declares legitimate, so `TooFewArguments` inside a specification stops
+     * being a report about a mistake.
+     */
+    public static function restCalls(): ScopeIndex
+    {
+        return self::$restCalls ??= new ScopeIndex();
+    }
+
+    /**
      * Forgets every recorded range. A real run analyses each file once; this
      * is for tests driving the handlers in sequence.
      */
     public static function reset(): void
     {
         self::$index = null;
+        self::$restCalls = null;
+    }
+
+    /**
+     * Whether a call's last written argument is `Arg::rest()` — resolved, so
+     * somebody else's `Arg` does not enable the tolerance, and ours does under
+     * any alias.
+     */
+    private static function endsWithRest(object $expression): bool
+    {
+        if (
+            !$expression instanceof FuncCall
+            && !$expression instanceof MethodCall
+            && !$expression instanceof NullsafeMethodCall
+            && !$expression instanceof StaticCall
+        ) {
+            return false;
+        }
+
+        $arguments = $expression->getArgs();
+
+        if ($arguments === []) {
+            return false;
+        }
+
+        $last = $arguments[count($arguments) - 1]->value;
+
+        return $last instanceof StaticCall
+            && $last->class instanceof Name
+            && $last->name instanceof Identifier
+            && strtolower($last->name->toString()) === 'rest'
+            && MatcherClass::isOurs(self::resolvedName($last->class));
     }
 
     /**

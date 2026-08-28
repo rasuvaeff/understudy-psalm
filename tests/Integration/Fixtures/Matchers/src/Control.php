@@ -23,4 +23,24 @@ final class Control
 
         $gate->open(Arg::int());
     }
+
+    /**
+     * A real call ending in `Arg::rest()` is under-arity for real: the
+     * engine answers it with `ArgumentCountError`, and the arity report must
+     * survive the plugin — the tolerance exists only inside a specification.
+     */
+    public function underArityLeak(): void
+    {
+        $gate = Understudy::for(Gate::class);
+
+        $gate->record('svc', Arg::rest());
+    }
+
+    public function captorLeak(): void
+    {
+        $gate = Understudy::for(Gate::class);
+        $codes = Arg::captor();
+
+        $gate->open($codes->capture());
+    }
 }

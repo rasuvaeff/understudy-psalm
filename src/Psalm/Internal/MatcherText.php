@@ -30,10 +30,21 @@ final class MatcherText
      */
     private const string MATCHER = '/(?<![\w$\\\\])(?:\\\\?Rasuvaeff\\\\Understudy\\\\)?Arg\s*::\s*[A-Za-z_]\w*\s*\(/i';
 
+    /**
+     * A captor's `->capture()` is a matcher too — `Arg::captor()` hands back
+     * a `Captor`, and the capture site is a method call on it, so the static
+     * pattern above never sees it. Zero arguments by contract, which is what
+     * the empty parentheses pin; text cannot check the receiver's type, but a
+     * no-argument `capture()` in an argument position of a specification
+     * closure has no other reading.
+     */
+    private const string CAPTURE = '/->\s*capture\s*\(\s*\)/i';
+
     private function __construct() {}
 
     public static function looksLikeMatcher(string $selected): bool
     {
-        return preg_match(self::MATCHER, $selected) === 1;
+        return preg_match(self::MATCHER, $selected) === 1
+            || preg_match(self::CAPTURE, $selected) === 1;
     }
 }
