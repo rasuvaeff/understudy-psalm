@@ -5,7 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## 0.2.0 — 2026-08-28
+
+A minor rather than a patch: new behaviour toward the consumer's own code
+(an ignored arity report, a newly typed matcher) and a raised dependency
+floor are both boundaries Composer's caret already treats as breaking on 0.x.
 
 - The `rasuvaeff/understudy` floor rises to `^0.4`: the fixtures that prove
   the new behaviour are written in the 0.4 idioms, and a lowest-versions run
