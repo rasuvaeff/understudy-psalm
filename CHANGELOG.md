@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+- The `rasuvaeff/understudy` floor rises to `^0.4`: the fixtures that prove
+  the new behaviour are written in the 0.4 idioms, and a lowest-versions run
+  against 0.1 would be proving nothing. Consumers on an older understudy stay
+  on the 0.1.x line of this package.
 - **understudy 0.4 idioms** (rasuvaeff/understudy-psalm#11): `TooFewArguments`
   goes quiet on a call inside a specification whose last written argument is
   `Arg::rest()` — both conditions AST-resolved, so a real call ending in
