@@ -19,6 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   zero-argument method call — because the receiver's type is not available
   where the report is intercepted, and that residue is documented rather than
   implied. (#15)
+- The Requirements section of both READMEs said `rasuvaeff/understudy` `^0.1`
+  while `composer.json` has required `^0.4` since 0.2.0.
 
 ## 0.2.0 — 2026-08-28
 
