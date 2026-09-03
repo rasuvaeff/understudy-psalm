@@ -5,7 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## 0.3.0 — 2026-09-03
+
+A minor rather than a patch: the plugin now reports diagnostics on the
+consumer's own code that it used to swallow, and stops reporting ones it
+raised wrongly — a boundary Composer's caret already treats as breaking on
+0.x.
+
 
 - **The suppression hook asks the resolver instead of reading the source
   text.** It dropped an argument diagnostic when the reported selection *looked
