@@ -174,26 +174,19 @@ final class SpecificationScope implements BeforeExpressionAnalysisInterface
 
     /**
      * Whether this expression IS a matcher: a static call on the `Arg` the
-     * resolver says is ours, or a captor's zero-argument `capture()`.
+     * resolver says is ours.
      *
-     * The captor half is decided by shape rather than by the receiver's type,
-     * which this hook cannot see — a `capture()` taking no arguments in a
-     * specification has no other reading, but somebody else's zero-argument
-     * `capture()` written there would be taken for a captor's. That residue
-     * is the whole of what is left unresolved, and it is stated in the README
-     * rather than implied.
+     * A captor's `capture()` is a matcher too, and it is deliberately not
+     * recognised here: the name of a method says nothing about the class it
+     * belongs to, and this hook is handed no resolved receiver. Those are
+     * recorded by {@see CaptorRecorder}, from a place where Psalm has already
+     * resolved one.
      */
     private static function isMatcherCall(object $expression): bool
     {
-        if ($expression instanceof StaticCall) {
-            return $expression->class instanceof Name
-                && MatcherClass::isOurs(self::resolvedName($expression->class));
-        }
-
-        return ($expression instanceof MethodCall || $expression instanceof NullsafeMethodCall)
-            && $expression->name instanceof Identifier
-            && strtolower($expression->name->toString()) === 'capture'
-            && $expression->getArgs() === [];
+        return $expression instanceof StaticCall
+            && $expression->class instanceof Name
+            && MatcherClass::isOurs(self::resolvedName($expression->class));
     }
 
     private static function isSpecificationCall(object $expression): bool

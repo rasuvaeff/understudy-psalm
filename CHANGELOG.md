@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.4.0 — 2026-09-03
+
+A minor rather than a patch, for the same reason 0.3.0 was: a diagnostic the
+plugin used to swallow now appears in the consumer's own code.
+
+- **A foreign `capture()` inside a specification keeps its diagnostic.** The
+  last thing this plugin decided by shape was a captor's `capture()` — a method
+  call with that name and no arguments — because `BeforeAddIssue` is handed no
+  resolved receiver. Anybody else's zero-argument `capture()` written inside a
+  specification was therefore taken for a captor's and lost whatever Psalm had
+  to say about it. `CaptorRecorder` now records those calls from
+  `MethodReturnTypeProvider`, where Psalm has already resolved the receiver and
+  hands over the node, so the suppression hook answers by resolution
+  throughout and the shape test is gone. The known limitation documented in
+  both READMEs and `llms.txt` goes with it. (#18)
+- Stability, stated rather than implied: the `UnderstudyMisuse` issue type and
+  the `Plugin` entry point are what a consumer's `issueHandlers` and
+  `psalm.xml` name, so they are stable; the wording of a diagnostic is not.
+
 ## 0.3.0 — 2026-09-03
 
 A minor rather than a patch: the plugin now reports diagnostics on the

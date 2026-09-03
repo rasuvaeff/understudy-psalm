@@ -125,6 +125,26 @@ final class MatcherSuppressionIntegrationTest
     }
 
     /**
+     * A `capture()` is a matcher written as a method call, and the class it
+     * belongs to is what decides whether it is ours. It used to be the method
+     * name and an empty argument list, so anybody else's zero-argument
+     * `capture()` inside a specification lost its diagnostic.
+     */
+    public function aForeignCaptureKeepsItsDiagnostic(): void
+    {
+        $report = $this->runPsalm('psalm.xml', 'Namesake');
+
+        // `Fixture\Namesake\Other\Recorder` is not a captor, and its `mixed`
+        // in an `int` parameter is a real problem — the control run raises the
+        // same issue with no plugin at all.
+        Assert::same(
+            $this->typesIn($report, 'ForeignCapture.php'),
+            $this->typesIn($this->runPsalm('psalm-without-plugin.xml', 'Namesake'), 'ForeignCapture.php'),
+        );
+        Assert::true($this->typesIn($report, 'ForeignCapture.php') !== []);
+    }
+
+    /**
      * The suppression hook answers by resolution too, and this is the test
      * that says so: it used to pin the opposite, because the hook read the
      * reported source text and an unqualified `Arg::` cannot be traced to a

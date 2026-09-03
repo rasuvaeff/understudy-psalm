@@ -27,10 +27,10 @@ Everything else the plugin registers is `@internal`.
 - Suppression is narrow by construction. Three things must hold: the issue is
   argument-shaped, its location is inside a `when()` / `expect()` / `verify()`
   call (the free functions or the `Understudy::` static form), and its file
-  offsets fall inside a call the resolver said is `Rasuvaeff\Understudy\Arg`.
-  A foreign class named `Arg` keeps its diagnostics; ours under an alias loses
-  them. The one exception is `capture()`, matched as a zero-argument method
-  call because the receiver's type is not available in the issue hook.
+  offsets fall inside a call the resolver said is ours — `Rasuvaeff\Understudy\Arg`,
+  or a `Captor::capture()` whose receiver Psalm resolved when asked for the
+  method's return type. A foreign class named `Arg`, and anybody else's
+  `capture()`, keep their diagnostics; ours under an alias loses them.
 - A matcher passed to a REAL call is still reported. That is `MatcherLeaked`
   at runtime, and hiding it would make the plugin worse than none.
 - `Arg::rest()` (understudy 0.4) legitimately passes fewer arguments than the
