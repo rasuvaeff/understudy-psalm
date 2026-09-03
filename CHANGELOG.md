@@ -21,6 +21,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   implied. (#15)
 - The Requirements section of both READMEs said `rasuvaeff/understudy` `^0.1`
   while `composer.json` has required `^0.4` since 0.2.0.
+- Allow `rasuvaeff/understudy` `^0.5`. Widened rather than raised: the plugin
+  works against both, and the suppression fix above must reach consumers still
+  on core 0.4.
 
 ## 0.2.0 — 2026-08-28
 
