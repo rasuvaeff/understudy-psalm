@@ -65,13 +65,13 @@ Two understudy 0.4 idioms are covered the same way:
   does not count against "exactly one call per closure", and a capture leaked
   into a real call keeps its report.
 
-Which `Arg` those rows are about is decided by the resolver, never by the
+Which of these the plugin acts on is decided by the resolver, never by the
 written name: somebody else's `Acme\Console\Arg::int()` inside a specification
 keeps its own diagnostics, and ours imported under an alias loses them under
-any name. The one thing still read by shape is `capture()`, which is matched
-as a zero-argument method call because the receiver's type is not available
-where the report is intercepted — so a foreign zero-argument `capture()`
-written inside a specification closure would be taken for a captor's.
+any name. That holds for `capture()` too, whose receiver Psalm has resolved by
+the time it is asked for the method's return type — a foreign zero-argument
+`capture()` written inside a specification is somebody else's method and keeps
+everything Psalm has to say about it.
 
 ## What else it reports
 
@@ -91,6 +91,11 @@ analysis misses.
 |---|---|
 | `UnderstudyMisuse` | The issue every diagnostic of this plugin is reported as. One type rather than one per rule: you either have understudy analysing your specifications or you do not, and needing to silence each rule separately would be a worse contract than needing to silence none. |
 | `Plugin` | The entry point Psalm loads, registered through `extra.psalm.pluginClass`. Nothing else in this package is public — the handlers it registers are `@internal`, and what they decide is the plugin's behaviour, not its API. |
+
+Both are stable: they are the two names a consumer writes down — one in
+`psalm.xml`, one in `issueHandlers` — and renaming either would silently stop a
+suppression somebody wrote. The **wording** of a diagnostic is not stable and a
+patch release may reword one; assert on the issue type, never on the sentence.
 
 ## The understudy family
 

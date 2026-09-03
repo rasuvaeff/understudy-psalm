@@ -40,11 +40,13 @@ final class Plugin implements PluginEntryPointInterface
         require_once __DIR__ . '/Internal/WireShape.php';
         require_once __DIR__ . '/BuilderReturnType.php';
         require_once __DIR__ . '/StaticBuilderReturnType.php';
+        require_once __DIR__ . '/CaptorRecorder.php';
 
         $registration->registerHooksFromClass(SpecificationScope::class);
         $registration->registerHooksFromClass(MatcherArgument::class);
         $registration->registerHooksFromClass(SpecificationRules::class);
         $registration->registerHooksFromClass(BuilderReturnType::class);
         $registration->registerHooksFromClass(StaticBuilderReturnType::class);
+        $registration->registerHooksFromClass(CaptorRecorder::class);
     }
 }
