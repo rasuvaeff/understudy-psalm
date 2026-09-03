@@ -5,12 +5,14 @@ declare(strict_types=1);
 namespace Rasuvaeff\Understudy\Psalm\Internal;
 
 /**
- * Where the specification calls of each file are.
+ * Where something of each file is, as inclusive integer ranges.
  *
- * Line ranges rather than AST nodes: the issue hook is handed a location, not
- * a node, so a range is the only thing the two hooks can compare. A call
- * spanning several lines therefore covers all of them, which is right — its
- * arguments are on those lines.
+ * Ranges rather than AST nodes: the issue hook is handed a location, not a
+ * node, so a range is the only thing the two hooks can compare. The unit is
+ * the caller's to choose and to state — `SpecificationScope::index()` and
+ * `restCalls()` hold line numbers, so a call spanning several lines covers
+ * all of them; `matcherCalls()` holds file offsets, because two calls can
+ * share a line and only one of them be ours.
  *
  * @internal
  */

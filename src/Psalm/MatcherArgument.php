@@ -6,7 +6,6 @@ namespace Rasuvaeff\Understudy\Psalm;
 
 use Psalm\Plugin\EventHandler\BeforeAddIssueInterface;
 use Psalm\Plugin\EventHandler\Event\BeforeAddIssueEvent;
-use Rasuvaeff\Understudy\Psalm\Internal\MatcherText;
 
 /**
  * Drops the one diagnostic the call-closure API cannot avoid on its own.
@@ -20,7 +19,15 @@ use Rasuvaeff\Understudy\Psalm\Internal\MatcherText;
  * Narrow by construction, and deliberately so — a blanket suppression would
  * hide the mistakes this plugin exists to surface. Three things must hold:
  * the issue is about an argument, the location is inside a recorded
- * specification call, and the offending text is an `Arg::` matcher.
+ * specification call, and the location is inside a call the resolver said is
+ * one of our matchers.
+ *
+ * The last of those used to be a look at the reported source text, and it was
+ * unsound in both directions: a foreign `Arg::` written unqualified had its
+ * own diagnostic silenced, and ours under an alias kept one it should not
+ * have. `CodeLocation` carries `raw_file_start`/`raw_file_end` — the node's
+ * own `startFilePos`/`endFilePos` — so the answer is an offset lookup into
+ * what `SpecificationScope` resolved while walking the AST.
  *
  * @internal
  */
@@ -72,6 +79,11 @@ final class MatcherArgument implements BeforeAddIssueInterface
             return null;
         }
 
-        return MatcherText::looksLikeMatcher($location->getSelectedText()) ? false : null;
+        // The start offset of the node the issue was raised about: an issue
+        // about the matcher call itself starts exactly where the call does,
+        // and one about a part of it starts inside.
+        return SpecificationScope::matcherCalls()->covers($location->file_path, $location->raw_file_start)
+            ? false
+            : null;
     }
 }

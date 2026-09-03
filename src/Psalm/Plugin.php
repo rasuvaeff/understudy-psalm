@@ -27,7 +27,7 @@ final class Plugin implements PluginEntryPointInterface
         // but a project analysing itself has no such guarantee, so the files
         // are required here rather than hoped for.
         require_once __DIR__ . '/Internal/VerbNames.php';
-        require_once __DIR__ . '/Internal/MatcherText.php';
+        require_once __DIR__ . '/Internal/MatcherClass.php';
         require_once __DIR__ . '/Internal/ScopeIndex.php';
         require_once __DIR__ . '/Internal/ClosureShape.php';
         require_once __DIR__ . '/Internal/Cardinality.php';

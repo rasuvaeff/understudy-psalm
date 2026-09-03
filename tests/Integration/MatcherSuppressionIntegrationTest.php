@@ -125,16 +125,16 @@ final class MatcherSuppressionIntegrationTest
     }
 
     /**
-     * What text alone cannot decide, stated rather than implied.
+     * The suppression hook answers by resolution too, and this is the test
+     * that says so: it used to pin the opposite, because the hook read the
+     * reported source text and an unqualified `Arg::` cannot be traced to a
+     * class that way.
      *
-     * `beforeAddIssue` is handed the reported source selection and nothing
-     * else, so an unqualified `Arg::` cannot be traced to a class: a foreign
-     * one is silenced along with ours, and ours under an alias is not
-     * silenced at all. The AST rules above are unaffected — they read the
-     * resolver — which is why the misuse verdicts are right in both files
-     * while these two argument diagnostics are not.
+     * Both halves were consumer-visible. A foreign namesake inside a
+     * specification lost a diagnostic about code that has nothing to do with
+     * this package; ours under an alias kept one the plugin exists to remove.
      */
-    public function theSuppressionHookStillJudgesByText(): void
+    public function theSuppressionHookJudgesByResolutionToo(): void
     {
         $report = $this->runPsalm('psalm.xml', 'Namesake');
 
@@ -144,14 +144,28 @@ final class MatcherSuppressionIntegrationTest
         ));
 
         // Foreign, unqualified, inside a specification closure: its own
-        // InvalidScalarArgument is dropped, as the control run shows it would
-        // otherwise be raised.
-        Assert::same($types('Foreign.php'), []);
-        Assert::true($this->countIn($this->runPsalm('psalm-without-plugin.xml', 'Namesake'), 'Foreign.php') > 0);
+        // argument diagnostic is kept, and the control run says it is the
+        // same one Psalm raises with no plugin at all.
+        Assert::same($types('Foreign.php'), $this->typesIn($this->runPsalm('psalm-without-plugin.xml', 'Namesake'), 'Foreign.php'));
+        Assert::true($types('Foreign.php') !== []);
 
-        // Ours under an alias: recognised by the rule, unrecognised by the
-        // hook, so the argument diagnostic survives next to the misuse.
-        Assert::true(\in_array('MixedArgument', $types('Aliased.php'), strict: true));
+        // Ours under an alias: the class is what counts, not the short name,
+        // so no argument diagnostic is left. The misuse verdict beside it is
+        // the rules' business and is asserted above.
+        Assert::false(\in_array('MixedArgument', $types('Aliased.php'), strict: true));
+    }
+
+    /**
+     * @param list<array{file_name: string, type: string}> $report
+     *
+     * @return list<string>
+     */
+    private function typesIn(array $report, string $file): array
+    {
+        return array_values(array_map(
+            static fn(array $issue): string => $issue['type'],
+            array_filter($report, static fn(array $issue): bool => str_ends_with($issue['file_name'], $file)),
+        ));
     }
 
     /**
