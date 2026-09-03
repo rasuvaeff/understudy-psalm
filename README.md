@@ -17,7 +17,7 @@ Psalm plugin for [understudy](https://github.com/rasuvaeff/understudy).
 
 - PHP 8.3 - 8.5
 - `vimeo/psalm` ^6.16
-- `rasuvaeff/understudy` ^0.1
+- `rasuvaeff/understudy` ^0.4
 
 ## Installation
 
@@ -64,6 +64,14 @@ Two understudy 0.4 idioms are covered the same way:
   clothes: its argument-type report goes quiet inside a specification, it
   does not count against "exactly one call per closure", and a capture leaked
   into a real call keeps its report.
+
+Which `Arg` those rows are about is decided by the resolver, never by the
+written name: somebody else's `Acme\Console\Arg::int()` inside a specification
+keeps its own diagnostics, and ours imported under an alias loses them under
+any name. The one thing still read by shape is `capture()`, which is matched
+as a zero-argument method call because the receiver's type is not available
+where the report is intercepted — so a foreign zero-argument `capture()`
+written inside a specification closure would be taken for a captor's.
 
 ## What else it reports
 

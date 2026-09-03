@@ -33,6 +33,8 @@ final class SpecificationScope implements BeforeExpressionAnalysisInterface
 
     private static ?ScopeIndex $restCalls = null;
 
+    private static ?ScopeIndex $matcherCalls = null;
+
     #[\Override]
     public static function beforeExpressionAnalysis(BeforeExpressionAnalysisEvent $event): ?bool
     {
@@ -47,6 +49,17 @@ final class SpecificationScope implements BeforeExpressionAnalysisInterface
                 $event->getStatementsSource()->getFilePath(),
                 $expression->getStartLine(),
                 $expression->getEndLine(),
+            );
+        }
+
+        if (self::isMatcherCall($expression)) {
+            // File offsets, not lines: two `Arg::` calls — one ours, one a
+            // namesake — can share a line, and a line-grained answer would
+            // silence both.
+            self::matcherCalls()->record(
+                $event->getStatementsSource()->getFilePath(),
+                $expression->getStartFilePos(),
+                $expression->getEndFilePos(),
             );
         }
 
@@ -80,6 +93,21 @@ final class SpecificationScope implements BeforeExpressionAnalysisInterface
     }
 
     /**
+     * Where the matcher calls of each file are, in FILE OFFSETS rather than
+     * line numbers — the unit the other two indexes do not use.
+     *
+     * This is what lets the issue hook answer "is the thing complained about
+     * one of our matchers" by resolution instead of by how it was spelled: a
+     * `StaticCall` is recorded only when the resolver says its class is ours,
+     * so a namesake keeps its diagnostics and an alias of ours loses the ones
+     * it should never have had.
+     */
+    public static function matcherCalls(): ScopeIndex
+    {
+        return self::$matcherCalls ??= new ScopeIndex();
+    }
+
+    /**
      * Forgets every recorded range. A real run analyses each file once; this
      * is for tests driving the handlers in sequence.
      */
@@ -87,6 +115,7 @@ final class SpecificationScope implements BeforeExpressionAnalysisInterface
     {
         self::$index = null;
         self::$restCalls = null;
+        self::$matcherCalls = null;
     }
 
     /**
@@ -141,6 +170,30 @@ final class SpecificationScope implements BeforeExpressionAnalysisInterface
         return isset($attributes['resolvedName']) && \is_string($attributes['resolvedName'])
             ? $attributes['resolvedName']
             : $name->toString();
+    }
+
+    /**
+     * Whether this expression IS a matcher: a static call on the `Arg` the
+     * resolver says is ours, or a captor's zero-argument `capture()`.
+     *
+     * The captor half is decided by shape rather than by the receiver's type,
+     * which this hook cannot see — a `capture()` taking no arguments in a
+     * specification has no other reading, but somebody else's zero-argument
+     * `capture()` written there would be taken for a captor's. That residue
+     * is the whole of what is left unresolved, and it is stated in the README
+     * rather than implied.
+     */
+    private static function isMatcherCall(object $expression): bool
+    {
+        if ($expression instanceof StaticCall) {
+            return $expression->class instanceof Name
+                && MatcherClass::isOurs(self::resolvedName($expression->class));
+        }
+
+        return ($expression instanceof MethodCall || $expression instanceof NullsafeMethodCall)
+            && $expression->name instanceof Identifier
+            && strtolower($expression->name->toString()) === 'capture'
+            && $expression->getArgs() === [];
     }
 
     private static function isSpecificationCall(object $expression): bool

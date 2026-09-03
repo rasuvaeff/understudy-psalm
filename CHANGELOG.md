@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+- **The suppression hook asks the resolver instead of reading the source
+  text.** It dropped an argument diagnostic when the reported selection *looked
+  like* an `Arg::` call, which was wrong in both directions and both of them
+  landed in the consumer's own code: somebody else's class named `Arg`, written
+  unqualified inside a specification, lost a real type error, and our own `Arg`
+  imported under an alias kept a `MixedArgument` the plugin exists to remove.
+  `SpecificationScope` now records the file offsets of every call it resolved
+  to `Rasuvaeff\Understudy\Arg`, and the hook answers from that. The internal
+  `MatcherText` class is gone. `capture()` is still matched by shape — a
+  zero-argument method call — because the receiver's type is not available
+  where the report is intercepted, and that residue is documented rather than
+  implied. (#15)
+- The Requirements section of both READMEs said `rasuvaeff/understudy` `^0.1`
+  while `composer.json` has required `^0.4` since 0.2.0.
+
 ## 0.2.0 — 2026-08-28
 
 A minor rather than a patch: new behaviour toward the consumer's own code
