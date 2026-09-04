@@ -5,8 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## 0.6.0 — 2026-09-04
 
+A minor rather than a patch, for the same reason 0.4.0 and 0.5.0 were: the
+plugin reports something in the consumer's own code that it used to pass over.
+
+- Allow `rasuvaeff/understudy` `^0.7`. Widened rather than raised.
 - `verify($call, times: -1)` is reported. `verifyProblem()` fell through to
   the `minimum`/`maximum` pair and dropped `times` on the way, so a negative
   exact count reached no check at all. It has a unit test rather than a
