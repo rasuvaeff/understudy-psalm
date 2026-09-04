@@ -225,6 +225,13 @@ final class SpecificationRules implements AfterExpressionAnalysisInterface
      * parameter with no declared type is a null entry: there is a parameter
      * at that position, and nothing is known about it.
      *
+     * The receiver has to be a plain variable, and that is a limit rather
+     * than a preference: `$context->vars_in_scope` is keyed by variable name,
+     * so a double reached through `$this->repository` or the result of a call
+     * has no entry to look up. Those specifications are left alone — the
+     * plugin says less about them, which is the direction it fails in
+     * everywhere else too.
+     *
      * @return list<Union|null>|null
      */
     private static function parameterTypesOf(MethodCall $call, AfterExpressionAnalysisEvent $event): ?array

@@ -61,6 +61,13 @@ final class BuilderType
     /**
      * The declared return type of the one call the closure makes.
      *
+     * The receiver has to be a plain variable, and that is a limit rather
+     * than a preference: `$context->vars_in_scope` is keyed by variable name,
+     * so a double reached through `$this->repository` or the result of a call
+     * has no entry to look up. Those specifications are left alone — the
+     * plugin says less about them, which is the direction it fails in
+     * everywhere else too.
+     *
      * Null whenever anything is not certain — a body that is not a single
      * call, a receiver whose type is unknown, a method with no declared
      * return. The core's `mixed` then stands, which costs a check and cannot
