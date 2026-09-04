@@ -112,6 +112,19 @@ when(fn () => $repo->find(Arg::int(min: 1)))->returns($book);
 является, патч-релиз вправе её переписать: ассертить нужно тип issue, а не
 предложение.
 
+## Безопасность
+
+Плагин работает внутри Psalm, читает исходники и рефлексию, только сообщает.
+Он не исполняет код анализируемого проекта и ничего не пишет.
+
+## Примеры
+
+См. [examples/README.md](examples/README.md). Исполняемая демонстрация — набор
+фикстурных проектов в `tests/Integration/Fixtures`: каждый прогоняется
+настоящим процессом Psalm как часть `composer build` — включая контрольный
+прогон с выключенным плагином, который и отличает работающий плагин от того,
+что загрузился и ничего не делает.
+
 ## Семейство understudy
 
 | Пакет | Что это |
@@ -125,7 +138,7 @@ when(fn () => $repo->find(Arg::int(min: 1)))->returns($book);
 ## Разработка
 
 ```bash
-make build          # validate + cs + psalm + unit + integration
+make build          # validate, normalize, require-checker, cs, psalm, unit, integration
 make test-integration
 ```
 
