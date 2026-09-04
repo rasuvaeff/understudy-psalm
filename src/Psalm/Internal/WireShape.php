@@ -9,6 +9,7 @@ use PhpParser\Node\Expr\ClassConstFetch;
 use PhpParser\Node\Name;
 use PhpParser\Node\Scalar\String_;
 use Psalm\Codebase;
+use Psalm\Type\Atomic;
 use Psalm\Type\Atomic\TKeyedArray;
 use Psalm\Type\Atomic\TNamedObject;
 use Psalm\Type\Union;
@@ -60,12 +61,35 @@ final class WireShape
                 continue;
             }
 
-            foreach ($type->getAtomicTypes() as $atomic) {
-                if ($atomic instanceof TNamedObject) {
-                    $doubles[$parameter->name] = new Union([$atomic]);
+            $named = array_values(array_filter(
+                $type->getAtomicTypes(),
+                static fn(Atomic $atomic): bool => $atomic instanceof TNamedObject,
+            ));
 
-                    break;
-                }
+            if (count($named) > 1) {
+                // The core refuses to wire this class at all —
+                // `CannotWire::undecidableParameter`, because picking one of
+                // the union's object types would be a guess — so the call
+                // throws before returning anything and there is no shape to
+                // describe, not even for the parameters that would be fine.
+                //
+                // Naming one of them is worse than saying nothing: it makes a
+                // call that always throws type-check, and which member gets
+                // picked is not even stable — it is whichever the type's
+                // atomic map happens to hold first.
+                return null;
+            }
+
+            // Copied verbatim, and that is what makes an intersection work:
+            // Psalm holds `A&B` as ONE `TNamedObject` carrying the rest in
+            // `extra_types`, and the core builds one double implementing all
+            // of them. Rebuilding the atomic from its name would drop the
+            // other half and make the key narrower than the object it stands
+            // for.
+            $atomic = $named[0] ?? null;
+
+            if ($atomic instanceof TNamedObject) {
+                $doubles[$parameter->name] = new Union([$atomic]);
             }
         }
 

@@ -162,6 +162,41 @@ final class MatcherSuppressionIntegrationTest
     }
 
     /**
+     * The shape has to agree with what `Wire::resolve()` does with a
+     * parameter naming more than one contract, and one half of it did not.
+     *
+     * An INTERSECTION is one double standing for both contracts, and Psalm
+     * holds `A&B` as one `TNamedObject` carrying the rest in `extra_types` —
+     * so copying the atomic verbatim keeps both halves callable. That works,
+     * and the fixture pins it, because rebuilding the atomic from its name
+     * would silently drop the other half.
+     *
+     * A UNION of two object types is refused outright by the core, and this
+     * used to name one of them: `$wired['doubles']['either']->now()`
+     * type-checked because the member the atomic map happened to hold first
+     * was `Clock`. A call that always throws `CannotWire` passed analysis. No
+     * shape is produced for such a class now, so the core's own declaration
+     * stands and the call is reported as the unknown it is.
+     */
+    public function theWireShapeAgreesWithTheCoreOnUnionsAndIntersections(): void
+    {
+        $report = $this->runPsalm('psalm.xml', 'Wire');
+
+        // The intersection lives in Right.php, with a method of each half
+        // called on the key — pinned at zero reports.
+        Assert::same($this->countIn($report, 'Right.php'), 0);
+
+        Assert::same(
+            count(array_filter(
+                $report,
+                static fn(array $issue): bool => $issue['type'] === 'MixedMethodCall'
+                    && str_contains($issue['message'], "\$wired['doubles']['either']"),
+            )),
+            1,
+        );
+    }
+
+    /**
      * Which `Arg` a rule acts on is decided by the resolver, not by the last
      * segment of the written name. Both directions used to be wrong, and both
      * landed in the consumer's own code.

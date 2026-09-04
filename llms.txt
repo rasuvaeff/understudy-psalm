@@ -55,5 +55,8 @@ Everything else the plugin registers is `@internal`.
   method being specified, and `WhenBuilder<TReturn>` already declares
   `returns(TReturn ...)`, so Psalm checks them itself.
 - Psalm's own `InvalidArrayOffset` and method diagnostics on `wire()`, whose
-  shape is read from the named class's constructor. A dynamic class-string is
-  left alone.
+  shape is read from the named class's constructor. An intersection parameter
+  keeps its intersection — the core builds one double for all of it. A union
+  naming two object types makes the core refuse the class (`CannotWire`), so
+  no shape is produced for that call at all. A dynamic class-string is left
+  alone.
