@@ -17,7 +17,7 @@ Psalm plugin for [understudy](https://github.com/rasuvaeff/understudy).
 
 - PHP 8.3 - 8.5
 - `vimeo/psalm` ^6.16
-- `rasuvaeff/understudy` ^0.4 || ^0.5
+- `rasuvaeff/understudy` ^0.4 || ^0.5 || ^0.6
 
 ## Installation
 

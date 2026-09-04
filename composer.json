@@ -25,7 +25,7 @@
     "require": {
         "php": "8.3 - 8.5",
         "nikic/php-parser": "^5.0",
-        "rasuvaeff/understudy": "^0.4 || ^0.5",
+        "rasuvaeff/understudy": "^0.4 || ^0.5 || ^0.6",
         "vimeo/psalm": "^6.16"
     },
     "require-dev": {

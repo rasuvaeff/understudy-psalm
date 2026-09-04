@@ -5,7 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## 0.5.0 — 2026-09-04
+
+A minor rather than a patch, for the same reason 0.3.0 and 0.4.0 were: the
+plugin now reports diagnostics in the consumer's own code that it used to
+swallow.
+
+- Allow `rasuvaeff/understudy` `^0.6`. Widened rather than raised: the plugin
+  works against 0.4, 0.5 and 0.6, and consumers on the older ones should not
+  be cut off from it.
 
 - **`wire()` typed a union-typed constructor parameter as one of its members**,
   so `$wired['doubles']['either']->now()` passed analysis for a call that
