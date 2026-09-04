@@ -44,12 +44,45 @@ final class MatcherSuppressionIntegrationTest
         Assert::true($this->countIn($report, 'Control.php') > 0);
     }
 
+    /**
+     * A verb the plugin does not know is not a missing feature — it is noise
+     * on correct code, because the suppression the matcher needs is decided
+     * by whether the call was recorded as a specification at all.
+     *
+     * `expectSequence()` was outside every rule until #20, the second verb
+     * to be after `lastCall()`. Both of its spellings are exercised in the
+     * `Matchers` fixture, and this is what would have caught it: seven
+     * reports on a file that must be silent — four `MixedArgument`, three
+     * `TooFewArguments` where the `Arg::rest()` tolerance needs both indexes
+     * to agree and only one of them was filled.
+     */
+    public function anArmedProtocolIsASpecificationScopeLikeAnyOther(): void
+    {
+        $report = $this->runPsalm('psalm.xml');
+
+        Assert::same($this->countIn($report, 'Correct.php'), 0);
+
+        // And the other direction, in the fixture that collects mistakes: a
+        // wrong-kind matcher in a protocol step is reported like any other.
+        // Four of them — a plain `when()`, a `lastCall()` reader, a step of a
+        // `verifySequence()` and a step of an armed `expectSequence()`.
+        $misuse = $this->runPsalm('psalm.xml', 'Misuse');
+
+        Assert::same(
+            count(array_filter(
+                $misuse,
+                static fn(array $issue): bool => str_contains($issue['message'], '`Arg::string()` matches a string'),
+            )),
+            4,
+        );
+    }
+
     public function everyMisuseIsReportedAndNothingElseIs(): void
     {
         $report = $this->runPsalm('psalm.xml', 'Misuse');
 
-        // Eight mistakes, eight reports, all of them ours.
-        Assert::same($this->countIn($report, 'Wrong.php'), 8);
+        // Nine mistakes, nine reports, all of them ours.
+        Assert::same($this->countIn($report, 'Wrong.php'), 9);
         Assert::same(
             array_values(array_unique(array_map(
                 static fn(array $issue): string => $issue['type'],

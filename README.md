@@ -46,11 +46,18 @@ The plugin drops that report inside a specification closure, and only there:
 | `Understudy::expect(fn () => $repo->find(Arg::any()))` | silent |
 | `Understudy::calls(fn () => $repo->find(Arg::any()))` | silent |
 | `Understudy::verifySequence(fn () => ..., fn () => ...)` | silent |
+| `expectSequence(fn () => ..., fn () => ...)` | silent |
 | `$repo->find(Arg::int())` — a real call | still an error |
 
 The last row is the point. A matcher reaching a real call raises
 `MatcherLeaked` at runtime, and a plugin that hid it would be worse than no
 plugin at all.
+
+Every call-closure verb counts, in either spelling: the free functions
+`when()`, `expect()`, `expectSequence()` and `verify()`, the same names on
+`Understudy::`, and the readers that exist only there — `calls()`,
+`lastCall()` and `verifySequence()`. Every closure of a protocol is read, so
+a matcher in its third step is treated exactly like one in a `when()`.
 
 Two understudy 0.4 idioms are covered the same way:
 

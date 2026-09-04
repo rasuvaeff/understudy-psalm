@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+- `expectSequence()` is recognised as a specification verb. It was in neither
+  spelling's list, so `SpecificationScope` never recorded the call: matchers
+  inside an armed protocol lost their suppression and Psalm reported them like
+  matchers anywhere else — seven reports on the fixture file that must be
+  silent. The misuse rules were absent on the same closures, so a wrong-kind
+  matcher in a protocol step drew nothing at all; it is now reported, which is
+  a new diagnostic in consumer code. Fixes #20.
+- `VerbNamesTest` now walks the core's own public surface and fails when a
+  closure-taking verb is missing from either list. `expectSequence()` was the
+  second verb to fall outside every rule after `lastCall()`; a list nobody
+  checks is what let both happen.
+
 ## 0.4.0 — 2026-09-03
 
 A minor rather than a patch, for the same reason 0.3.0 was: a diagnostic the

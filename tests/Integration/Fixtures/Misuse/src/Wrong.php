@@ -8,6 +8,7 @@ use Rasuvaeff\Understudy\Arg;
 use Rasuvaeff\Understudy\Understudy;
 
 use function Rasuvaeff\Understudy\expect;
+use function Rasuvaeff\Understudy\expectSequence;
 use function Rasuvaeff\Understudy\verify;
 use function Rasuvaeff\Understudy\when;
 
@@ -83,6 +84,20 @@ final class Wrong
         $gate = Understudy::for(Gate::class);
 
         Understudy::verifySequence(
+            static fn(): bool => $gate->open(1),
+            static fn(): bool => $gate->open(Arg::string()),
+        );
+    }
+
+    /**
+     * The same for an armed protocol, which is the other sequence verb and
+     * was outside every rule of this plugin until it was listed (#20).
+     */
+    public function wrongKindOfMatcherInAnArmedSequence(): void
+    {
+        $gate = Understudy::for(Gate::class);
+
+        expectSequence(
             static fn(): bool => $gate->open(1),
             static fn(): bool => $gate->open(Arg::string()),
         );
