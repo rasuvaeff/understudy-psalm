@@ -111,6 +111,19 @@ Both are stable: they are the two names a consumer writes down — one in
 suppression somebody wrote. The **wording** of a diagnostic is not stable and a
 patch release may reword one; assert on the issue type, never on the sentence.
 
+## Security
+
+The plugin runs inside Psalm, reads source and reflection, and reports. It
+executes no code from the project under analysis and writes nothing.
+
+## Examples
+
+See [examples/README.md](examples/README.md). The executable demonstration is
+the set of fixture projects under `tests/Integration/Fixtures`, each analysed
+by a real Psalm process as part of `composer build` — including a control run
+with the plugin switched off, which is what tells a working plugin apart from
+one that loads and does nothing.
+
 ## The understudy family
 
 | Package | What it is |
@@ -124,7 +137,7 @@ patch release may reword one; assert on the issue type, never on the sentence.
 ## Development
 
 ```bash
-make build          # validate + cs + psalm + unit + integration
+make build          # validate, normalize, require-checker, cs, psalm, unit, integration
 make test-integration
 ```
 
