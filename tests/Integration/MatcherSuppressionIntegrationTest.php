@@ -81,8 +81,8 @@ final class MatcherSuppressionIntegrationTest
     {
         $report = $this->runPsalm('psalm.xml', 'Misuse');
 
-        // Nine mistakes, nine reports, all of them ours.
-        Assert::same($this->countIn($report, 'Wrong.php'), 9);
+        // Ten mistakes, ten reports, all of them ours.
+        Assert::same($this->countIn($report, 'Wrong.php'), 10);
         Assert::same(
             array_values(array_unique(array_map(
                 static fn(array $issue): string => $issue['type'],
@@ -95,6 +95,37 @@ final class MatcherSuppressionIntegrationTest
         // neighbour of a mistake next door. A false accusation here is worse
         // than a missed one, because a user cannot act on it.
         Assert::same($this->countIn($report, 'Right.php'), 0);
+    }
+
+    /**
+     * A refined type is still the kind it refines.
+     *
+     * The rule used to compare the PRINTED NAME of a parameter's type against
+     * the word `string` or `int`, and `non-empty-string` is neither — so
+     * `Arg::string()` against it was reported as a pairing no argument could
+     * satisfy. Measured on this fixture before the rule moved to Psalm's
+     * atomic types: six false reports in the control file, on
+     * `non-empty-string`, `class-string`, a literal union, `positive-int`,
+     * `int<1, 10>` and `callable`. All six are in `Right.php` now, and the
+     * count above is what pins them.
+     *
+     * The other direction has to keep working, which is what `Wrong.php`'s
+     * `Arg::int()` against a `non-empty-string` parameter is for: narrowing a
+     * type does not change its kind.
+     */
+    public function aRefinedParameterTypeIsStillItsOwnKind(): void
+    {
+        $report = $this->runPsalm('psalm.xml', 'Misuse');
+
+        Assert::same($this->countIn($report, 'Right.php'), 0);
+
+        Assert::same(
+            count(array_filter(
+                $report,
+                static fn(array $issue): bool => str_contains($issue['message'], '`Arg::int()` matches a int'),
+            )),
+            1,
+        );
     }
 
     public function anAnswerOfTheWrongShapeIsReported(): void

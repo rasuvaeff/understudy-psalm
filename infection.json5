@@ -10,9 +10,19 @@
     "testFramework": "testo",
     // The Psalm hook classes themselves are plumbing their mutants cannot
     // reach from a unit test — the decisions they delegate to are what this
-    // number is about. Set at introduction (2026-08-24) and to be raised once
-    // the plugin has more than one rule.
-    "minMsi": 85,
+    // number is about. 85 at introduction (2026-08-24), when the plugin had
+    // one rule and no unit test for it.
+    //
+    // Measured 2026-09-04 on PHP 8.4 — the version the `Coverage & Mutation`
+    // job pins, and mutants can differ between versions: 77 of 78 killed,
+    // 98.71%. The single survivor is equivalent and cannot be killed:
+    // `ScopeIndex::record()`'s `$startLine <= $endLine` mutated to `<`, where
+    // the two branches build the same pair whenever the bounds are equal.
+    //
+    // The gate is one mutant below the measurement — `floor(100 * (killed - 1)
+    // / tested)` — so that one hard-to-kill line from an unrelated change does
+    // not redden the build before anybody has looked at it.
+    "minMsi": 97,
     "mutators": {
         "@default": true
     }

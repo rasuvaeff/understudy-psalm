@@ -21,6 +21,7 @@ use Psalm\Plugin\EventHandler\AfterExpressionAnalysisInterface;
 use Psalm\Plugin\EventHandler\Event\AfterExpressionAnalysisEvent;
 use Psalm\StatementsSource;
 use Psalm\Type\Atomic\TNamedObject;
+use Psalm\Type\Union;
 use Rasuvaeff\Understudy\Psalm\Internal\Cardinality;
 use Rasuvaeff\Understudy\Psalm\Internal\ClosureShape;
 use Rasuvaeff\Understudy\Psalm\Internal\MatcherClass;
@@ -193,12 +194,13 @@ final class SpecificationRules implements AfterExpressionAnalysisInterface
 
         foreach (array_values($body->getArgs()) as $position => $argument) {
             $matcher = self::matcherName($argument->value);
+            $parameter = $parameters[$position] ?? null;
 
-            if ($matcher === null || $matcher === '' || !isset($parameters[$position])) {
+            if ($matcher === null || $matcher === '' || !$parameter instanceof Union) {
                 continue;
             }
 
-            $problem = MatcherKind::problem($matcher, $parameters[$position]);
+            $problem = MatcherKind::problem($matcher, $parameter);
 
             if ($problem !== null) {
                 self::report($problem, $argument->value, $source);
@@ -217,11 +219,13 @@ final class SpecificationRules implements AfterExpressionAnalysisInterface
     }
 
     /**
-     * Atomic type names of each parameter of the called method, or null when
+     * The declared type of each parameter of the called method, or null when
      * the target cannot be resolved — an untyped variable, a method Psalm has
-     * no storage for, anything the plugin should stay quiet about.
+     * no storage for, anything the plugin should stay quiet about. A
+     * parameter with no declared type is a null entry: there is a parameter
+     * at that position, and nothing is known about it.
      *
-     * @return list<list<string>>|null
+     * @return list<Union|null>|null
      */
     private static function parameterTypesOf(MethodCall $call, AfterExpressionAnalysisEvent $event): ?array
     {
@@ -260,7 +264,7 @@ final class SpecificationRules implements AfterExpressionAnalysisInterface
      * them is one Psalm release away from breaking. `Codebase` takes a plain
      * `Class::method` string for both.
      *
-     * @return list<list<string>>|null
+     * @return list<Union|null>|null
      */
     private static function parametersOf(Codebase $codebase, string $class, string $method): ?array
     {
@@ -273,13 +277,7 @@ final class SpecificationRules implements AfterExpressionAnalysisInterface
         $parameters = [];
 
         foreach ($codebase->getMethodParams($identifier) as $parameter) {
-            $names = [];
-
-            foreach ($parameter->type?->getAtomicTypes() ?? [] as $atomic) {
-                $names[] = $atomic->getId();
-            }
-
-            $parameters[] = $names;
+            $parameters[] = $parameter->type;
         }
 
         return $parameters;
