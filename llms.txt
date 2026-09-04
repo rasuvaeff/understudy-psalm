@@ -25,8 +25,10 @@ Everything else the plugin registers is `@internal`.
   be passable wherever a contract declares anything at all. Inside a
   specification closure that is correct and Psalm cannot know it.
 - Suppression is narrow by construction. Three things must hold: the issue is
-  argument-shaped, its location is inside a `when()` / `expect()` / `verify()`
-  call (the free functions or the `Understudy::` static form), and its file
+  argument-shaped, its location is inside a call-closure verb — `when()`,
+  `expect()`, `expectSequence()`, `verify()` as free functions or on
+  `Understudy::`, plus `calls()`, `lastCall()` and `verifySequence()`, which
+  exist only there — and its file
   offsets fall inside a call the resolver said is ours — `Rasuvaeff\Understudy\Arg`,
   or a `Captor::capture()` whose receiver Psalm resolved when asked for the
   method's return type. A foreign class named `Arg`, and anybody else's

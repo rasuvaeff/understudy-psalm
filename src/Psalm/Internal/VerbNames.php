@@ -18,7 +18,12 @@ final class VerbNames
 {
     public const string NAMESPACE_PREFIX = 'rasuvaeff\\understudy\\';
 
-    private const array VERBS = ['when', 'expect', 'verify'];
+    /**
+     * The free functions of `functions.php`. `expectSequence()` is one of
+     * them: it arms a whole protocol of call closures, and each carries the
+     * same matchers `when()` does.
+     */
+    private const array VERBS = ['when', 'expect', 'expectsequence', 'verify'];
 
     /**
      * The static form carries the call-closure readers too. `calls()`,
@@ -28,8 +33,21 @@ final class VerbNames
      * closure was reported exactly like a leak. A reader added to the core
      * belongs in this list the day it is added: `lastCall()` arrived after
      * the plugin was written and was silently outside every rule until now.
+     *
+     * Saying that was not enough — `expectSequence()` repeated it, which is
+     * two of two. `VerbNamesTest` now walks the core's own surface and fails
+     * when a closure-taking verb is missing from either list, so the next one
+     * is a red build rather than noise in a consumer's project.
      */
-    private const array STATIC_VERBS = ['when', 'expect', 'verify', 'calls', 'lastcall', 'verifysequence'];
+    private const array STATIC_VERBS = [
+        'when',
+        'expect',
+        'expectsequence',
+        'verify',
+        'calls',
+        'lastcall',
+        'verifysequence',
+    ];
 
     private function __construct() {}
 

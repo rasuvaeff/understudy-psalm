@@ -7,6 +7,7 @@ namespace Fixture\Matchers;
 use Rasuvaeff\Understudy\Arg;
 use Rasuvaeff\Understudy\Understudy;
 
+use function Rasuvaeff\Understudy\expectSequence;
 use function Rasuvaeff\Understudy\when;
 
 /**
@@ -66,6 +67,26 @@ final class Correct
         Understudy::verifySequence(
             static fn(): bool => $gate->open(Arg::int()),
             static fn(): bool => $gate->open(Arg::int(min: 1)),
+        );
+    }
+
+    /**
+     * An armed protocol is a specification scope like any other, in both of
+     * its spellings: `expectSequence()` is the one sequence verb that also
+     * has a free function, so it has to be claimed by both lists.
+     */
+    public function armedProtocol(): void
+    {
+        $gate = Understudy::for(Gate::class);
+
+        expectSequence(
+            static fn(): bool => $gate->open(Arg::int()),
+            static fn(): bool => $gate->open(Arg::any()),
+        );
+
+        Understudy::expectSequence(
+            static fn(): bool => $gate->open(Arg::int(min: 1)),
+            static fn() => $gate->record('svc', Arg::rest()),
         );
     }
 }
