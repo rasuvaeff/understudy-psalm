@@ -86,7 +86,7 @@ everything Psalm has to say about it.
 |---|---|
 | `UnderstudyMisuse` | A matcher whose kind the parameter can never accept. A closure that specifies nothing, or two calls, or calls a static method. Cardinality no run can satisfy. `verify()` arguments that contradict each other. |
 | Psalm's own `InvalidArgument` | `returns()` and `answers()` against the method being specified. The plugin does not check these — it fills in the builder's template parameter, and `WhenBuilder<TReturn>` already declares `returns(TReturn ...)`. Psalm does the rest. |
-| Psalm's own array and method diagnostics | `wire()`, whose shape is read from the named class's constructor: an unknown key is an error, and each double is typed as its contract. A dynamic class-string is left alone. |
+| Psalm's own array and method diagnostics | `wire()`, whose shape is read from the named class's constructor: an unknown key is an error, and each double is typed as its contract — an intersection parameter keeps its intersection, because the core builds one double for all of it. A class the core refuses to wire, and a dynamic class-string, are left alone. |
 
 Everything the plugin is not sure about stays silent. A false accusation costs
 more than a missed one here, because the engine still catches what static

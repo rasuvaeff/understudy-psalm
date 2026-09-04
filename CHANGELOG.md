@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+- **`wire()` typed a union-typed constructor parameter as one of its members**,
+  so `$wired['doubles']['either']->now()` passed analysis for a call that
+  always throws: the core refuses a union naming more than one object type
+  (`CannotWire`), and which member the plugin picked was whichever the atomic
+  map happened to hold first. No shape is produced for such a class now, and
+  the core's own declaration stands. The intersection half — one double
+  standing for every contract in it — keeps working and is now pinned by a
+  fixture that calls a method of each half; it worked only because Psalm holds
+  `A&B` as one atomic carrying the rest in `extra_types`, and nothing said so.
+  Fixes #24.
+
 - **`Arg::string()` no longer accuses a `non-empty-string` parameter.** The
   matcher-kind rule compared the PRINTED NAME of a parameter's type against
   the word `string` or `int`, so every refined type was a pairing "no argument
