@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+- `verify($call, times: -1)` is reported. `verifyProblem()` fell through to
+  the `minimum`/`maximum` pair and dropped `times` on the way, so a negative
+  exact count reached no check at all. It has a unit test rather than a
+  fixture on purpose: `verify()` declares `int<0, max>|null`, so wherever
+  Psalm checks that annotation it reports the argument itself and this rule
+  never speaks — what the rule buys is the levels where it does not.
+- `Cardinality` and `ClosureShape` have unit tests, ported from the PHPStan
+  sibling, which had them. Four of the eight internals were covered; six are
+  now, and the two that are left need a `Codebase` to build.
+- The `CaptureShapes` fixture is asserted. It was in the fixture project and
+  in no assertion, so nothing said whether the plugin did anything about a
+  capture in a nested position — which is the one thing the file exists to
+  ask. Both directions are pinned now, control run included.
+- `BuilderType` and `SpecificationRules` say why the receiver has to be a
+  plain variable: `vars_in_scope` is keyed by variable name, so a double
+  reached through `$this->repository` has no entry to look up.
+- The `VerbNames` docblock no longer counts the verbs — it said "three", and
+  there are four.
+
 ## 0.5.0 — 2026-09-04
 
 A minor rather than a patch, for the same reason 0.3.0 and 0.4.0 were: the

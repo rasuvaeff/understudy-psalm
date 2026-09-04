@@ -74,6 +74,21 @@ final class Cardinality
                 . 'to constrain. Use one or the other.';
         }
 
+        // An exact count of its own used to reach nothing: the bounds below
+        // are the `minimum`/`maximum` pair, and `times` was dropped on the
+        // way. `verify($call, times: -1)` is the same nonsense as a negative
+        // bound, and the engine refuses it in the same breath.
+        //
+        // Not covered by an integration fixture, and that is the finding
+        // rather than an omission: `verify()` declares `int<0, max>|null`, so
+        // at the levels where Psalm checks that annotation it reports the
+        // argument itself and this rule never speaks. What the rule buys is
+        // the levels where it does not — which is why the check belongs here
+        // and its test is a unit test.
+        if (\is_int($times) && $times < 0) {
+            return sprintf('a call cannot happen %d times: the count is negative.', $times);
+        }
+
         return self::timesProblem(
             \is_int($minimum) ? $minimum : null,
             \is_int($maximum) ? $maximum : null,

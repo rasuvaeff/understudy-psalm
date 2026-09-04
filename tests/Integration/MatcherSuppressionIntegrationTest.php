@@ -32,6 +32,9 @@ final class MatcherSuppressionIntegrationTest
 
         Assert::true($this->countIn($report, 'Correct.php') > 0);
         Assert::true($this->countIn($report, 'Control.php') > 0);
+        // The nested capture too — it was in the fixture and in no assertion,
+        // so nothing said whether the plugin was doing anything about it.
+        Assert::true($this->countIn($report, 'CaptureShapes.php') > 0);
     }
 
     public function withThePluginOnlyTheLeakIsReported(): void
@@ -40,6 +43,11 @@ final class MatcherSuppressionIntegrationTest
 
         // Matchers inside a specification closure: silent, which is the point.
         Assert::same($this->countIn($report, 'Correct.php'), 0);
+        // A capture in a nested position is one too. Recognising the receiver
+        // happens when Psalm asks for the method's return type, which can be
+        // a different moment than the argument check — the reason the fixture
+        // exists, and until now the only thing it did was exist.
+        Assert::same($this->countIn($report, 'CaptureShapes.php'), 0);
         // A matcher passed to a real call: still an error, because it is one.
         Assert::true($this->countIn($report, 'Control.php') > 0);
     }

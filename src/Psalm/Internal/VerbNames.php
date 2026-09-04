@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Rasuvaeff\Understudy\Psalm\Internal;
 
 /**
- * Whether a called name is one of understudy's three specification verbs.
+ * Whether a called name is one of understudy's specification verbs.
  *
  * Split out of the hook because this is the whole decision and the hook is
  * only plumbing: reaching it through Psalm would mean building an `Expr`, a
