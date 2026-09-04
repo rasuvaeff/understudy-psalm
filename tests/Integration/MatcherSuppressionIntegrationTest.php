@@ -53,6 +53,52 @@ final class MatcherSuppressionIntegrationTest
     }
 
     /**
+     * A factory and a real call can share a source line with a specification,
+     * but neither is part of the matcher argument suppression.
+     */
+    public function suppressionBoundariesAreLocatedByCall(): void
+    {
+        $without = $this->typesIn(
+            $this->runPsalm('psalm-without-plugin.xml'),
+            'Boundary.php',
+        );
+        $with = $this->typesIn($this->runPsalm('psalm.xml'), 'Boundary.php');
+
+        // The plugin must leave the captor diagnostic intact: the factory has
+        // a Captor return type and is not itself a matcher.
+        Assert::same(
+            array_values(array_filter($with, static fn(string $type): bool => $type === 'InvalidArgument')),
+            ['InvalidArgument'],
+        );
+
+        Assert::same(
+            array_values(array_filter($without, static fn(string $type): bool => $type === 'InvalidArgument')),
+            ['InvalidArgument'],
+        );
+
+        // The first rest call is the valid specification and contributes
+        // three arity issues plus one mixed-argument issue to the control run.
+        // The second call is real and shares its source line; its three arity
+        // issues and one argument issue must remain with the plugin enabled.
+        Assert::same(
+            count(array_filter($without, static fn(string $type): bool => $type === 'TooFewArguments')),
+            6,
+        );
+        Assert::same(
+            count(array_filter($with, static fn(string $type): bool => $type === 'TooFewArguments')),
+            3,
+        );
+        Assert::same(
+            count(array_filter($without, static fn(string $type): bool => $type === 'MixedArgument')),
+            2,
+        );
+        Assert::same(
+            count(array_filter($with, static fn(string $type): bool => $type === 'MixedArgument')),
+            1,
+        );
+    }
+
+    /**
      * A verb the plugin does not know is not a missing feature — it is noise
      * on correct code, because the suppression the matcher needs is decided
      * by whether the call was recorded as a specification at all.

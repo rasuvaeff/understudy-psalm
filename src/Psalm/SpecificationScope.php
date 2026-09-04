@@ -47,8 +47,8 @@ final class SpecificationScope implements BeforeExpressionAnalysisInterface
             // ending in `Arg::rest()` keeps its arity report either way.
             self::restCalls()->record(
                 $event->getStatementsSource()->getFilePath(),
-                $expression->getStartLine(),
-                $expression->getEndLine(),
+                $expression->getStartFilePos(),
+                $expression->getEndFilePos(),
             );
         }
 
@@ -69,8 +69,8 @@ final class SpecificationScope implements BeforeExpressionAnalysisInterface
 
         self::index()->record(
             $event->getStatementsSource()->getFilePath(),
-            $expression->getStartLine(),
-            $expression->getEndLine(),
+            $expression->getStartFilePos(),
+            $expression->getEndFilePos(),
         );
 
         return null;
@@ -174,7 +174,7 @@ final class SpecificationScope implements BeforeExpressionAnalysisInterface
 
     /**
      * Whether this expression IS a matcher: a static call on the `Arg` the
-     * resolver says is ours.
+     * resolver says is ours, excluding the captor factory.
      *
      * A captor's `capture()` is a matcher too, and it is deliberately not
      * recognised here: the name of a method says nothing about the class it
@@ -186,6 +186,8 @@ final class SpecificationScope implements BeforeExpressionAnalysisInterface
     {
         return $expression instanceof StaticCall
             && $expression->class instanceof Name
+            && $expression->name instanceof Identifier
+            && strtolower($expression->name->toString()) !== 'captor'
             && MatcherClass::isOurs(self::resolvedName($expression->class));
     }
 

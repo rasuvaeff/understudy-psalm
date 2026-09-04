@@ -63,10 +63,12 @@ final class MatcherArgument implements BeforeAddIssueInterface
         // with a sentinel, so inside a specification the short call is the
         // idiom, not a mistake. Both indexes must agree: a real call ending
         // in `Arg::rest()` sits outside every specification range and keeps
-        // its report, on top of the leak the engine raises at runtime.
+        // its report, on top of the leak the engine raises at runtime. The
+        // location is an offset so another call on the same line cannot match
+        // the recorded specification by accident.
         if ($type === self::TOO_FEW) {
-            return SpecificationScope::index()->covers($location->file_path, $location->getLineNumber())
-                && SpecificationScope::restCalls()->covers($location->file_path, $location->getLineNumber())
+            return SpecificationScope::index()->covers($location->file_path, $location->raw_file_start)
+                && SpecificationScope::restCalls()->covers($location->file_path, $location->raw_file_start)
                 ? false
                 : null;
         }
@@ -75,7 +77,7 @@ final class MatcherArgument implements BeforeAddIssueInterface
             return null;
         }
 
-        if (!SpecificationScope::index()->covers($location->file_path, $location->getLineNumber())) {
+        if (!SpecificationScope::index()->covers($location->file_path, $location->raw_file_start)) {
             return null;
         }
 

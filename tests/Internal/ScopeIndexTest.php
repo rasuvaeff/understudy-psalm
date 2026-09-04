@@ -16,7 +16,7 @@ use Testo\Test;
 #[Covers(ScopeIndex::class)]
 final class ScopeIndexTest
 {
-    public function aLineInsideARecordedCallIsCovered(): void
+    public function anOffsetInsideARecordedCallIsCovered(): void
     {
         $index = new ScopeIndex();
         $index->record('/a.php', 10, 12);
@@ -26,7 +26,7 @@ final class ScopeIndexTest
         Assert::true($index->covers('/a.php', 12));
     }
 
-    public function aLineOutsideIsNot(): void
+    public function anOffsetOutsideIsNot(): void
     {
         $index = new ScopeIndex();
         $index->record('/a.php', 10, 12);
@@ -35,7 +35,7 @@ final class ScopeIndexTest
         Assert::false($index->covers('/a.php', 13));
     }
 
-    public function rangesAreKeptPerFile(): void
+    public function offsetRangesAreKeptPerFile(): void
     {
         // Two files analysed in one run must not lend each other their scopes.
         $index = new ScopeIndex();
@@ -44,7 +44,7 @@ final class ScopeIndexTest
         Assert::false($index->covers('/b.php', 11));
     }
 
-    public function severalCallsInOneFileAreAllRemembered(): void
+    public function severalOffsetRangesInOneFileAreAllRemembered(): void
     {
         $index = new ScopeIndex();
         $index->record('/a.php', 10, 12);
@@ -54,7 +54,7 @@ final class ScopeIndexTest
         Assert::false($index->covers('/a.php', 15));
     }
 
-    public function aReversedRangeIsStillARange(): void
+    public function aReversedOffsetRangeIsStillARange(): void
     {
         // Nothing should hand these over backwards, but a silently empty
         // range would switch the whole plugin off for that call.
