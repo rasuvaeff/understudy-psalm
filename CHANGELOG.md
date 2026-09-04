@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+- **`Arg::string()` no longer accuses a `non-empty-string` parameter.** The
+  matcher-kind rule compared the PRINTED NAME of a parameter's type against
+  the word `string` or `int`, so every refined type was a pairing "no argument
+  can satisfy" — `non-empty-string`, `numeric-string`, `class-string`, a
+  literal string or int, `positive-int`, `int<1, 10>`, and `callable`, which a
+  string legitimately is. The branch meant to cover literals looked for
+  `string(…)`, a spelling `Union::getId()` never produces, so it had never run.
+  Measured on the fixture: six false reports on correct code, none now. The
+  rule reads Psalm's atomic types instead — `TNonEmptyString` IS a `TString`,
+  `TIntRange` IS a `TInt` — and stays silent for any atomic it does not read.
+  Fixes #22.
+- `MatcherKindTest` covers the rule directly: both directions of every kind,
+  the refinements, the sets the rule declines to take apart, unions, and the
+  matchers whose kind is not knowable from their name.
+- The mutation gate rises from 85 to 97. Measured on PHP 8.4, the version the
+  coverage job pins: 77 of 78 mutants killed, and the one survivor is
+  equivalent (`ScopeIndex`'s `<=` mutated to `<`, where both branches build
+  the same pair when the bounds are equal).
+- `VerbNamesTest` gains the two cases its PHPStan sibling already had: a
+  written leading separator, and a foreign namespace exactly as long as ours.
+  Both were surviving mutants — without the second, the early `return false`
+  for a foreign prefix was worth nothing, because falling through reads a verb
+  out of a foreign name of the right length.
 - `expectSequence()` is recognised as a specification verb. It was in neither
   spelling's list, so `SpecificationScope` never recorded the call: matchers
   inside an armed protocol lost their suppression and Psalm reported them like

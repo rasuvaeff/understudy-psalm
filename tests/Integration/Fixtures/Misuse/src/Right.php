@@ -30,6 +30,27 @@ final class Right
         when(static fn(): bool => $gate->open(Arg::not(Arg::int())));
     }
 
+    /**
+     * A refined type is still the kind it refines, and a matcher of that kind
+     * can produce a value that fits it. Every one of these used to be
+     * reported: the rule compared the printed name of the type against the
+     * word `string` or `int`, and `non-empty-string` is neither.
+     *
+     * A `callable` belongs here too — it is spelled as a string often enough
+     * that "no string can be one" would be a false accusation.
+     */
+    public function matchersThatFitARefinedType(): void
+    {
+        $gate = Understudy::for(Gate::class);
+
+        when(static fn(): bool => $gate->name(Arg::string()));
+        when(static fn(): bool => $gate->bind(Arg::string()));
+        when(static fn(): bool => $gate->choose(Arg::string()));
+        when(static fn(): bool => $gate->pick(Arg::int()));
+        when(static fn(): bool => $gate->level(Arg::int()));
+        when(static fn(): bool => $gate->handle(Arg::string()));
+    }
+
     public function boundsThatCanBeMet(): void
     {
         $gate = Understudy::for(Gate::class);

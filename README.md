@@ -92,6 +92,13 @@ Everything the plugin is not sure about stays silent. A false accusation costs
 more than a missed one here, because the engine still catches what static
 analysis misses.
 
+That is why a refined parameter type draws nothing: `Arg::string()` against a
+`non-empty-string`, a `class-string` or a literal union is a pairing an
+argument can satisfy, and so is `Arg::int()` against `positive-int` or
+`int<1, 10>` — a refinement is still the kind it refines. The rule speaks only
+when EVERY member of the parameter's type is a definite no, and it declines to
+judge a type whose values it cannot enumerate.
+
 ## API
 
 | Type | Purpose |

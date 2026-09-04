@@ -55,6 +55,11 @@ final class VerbNamesTest
         yield 'another vendor when' => ['App\Support\when', false];
         yield 'our namespace, not a verb' => ['Rasuvaeff\Understudy\forwarding', false];
         yield 'not a verb at all' => ['array_map', false];
+        // Another vendor's namespace is never ours, whatever its length: the
+        // prefix decides, not what happens to sit at the same offset. Without
+        // this case the early `return false` is worth nothing — the fall
+        // through reads a verb out of a foreign name of the right length.
+        yield 'a foreign namespace as long as ours' => ['app\\aaaaaaaaaaaaaaaa\\when', false];
     }
 
     #[DataProvider('staticProvider')]
@@ -67,6 +72,10 @@ final class VerbNamesTest
     {
         yield 'the static form' => [\Rasuvaeff\Understudy\Understudy::class, 'when', true];
         yield 'leading separator' => [\Rasuvaeff\Understudy\Understudy::class, 'expect', true];
+        // Built rather than written out: a literal FQCN string is what rector
+        // rewrites into `::class`, and `::class` has no leading separator —
+        // which is the whole point of this case.
+        yield 'a written leading separator' => ['\\' . Understudy::class, 'expect', true];
         yield 'lowercased' => ['rasuvaeff\understudy\understudy', 'verify', true];
         yield 'the sequence form' => [Understudy::class, 'expectSequence', true];
         // Deliberately not a verb: `scope()` takes a call closure first
