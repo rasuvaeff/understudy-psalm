@@ -14,6 +14,7 @@ use PhpParser\Node\Expr\StaticCall;
 use PhpParser\Node\Identifier;
 use PhpParser\Node\Name;
 use PhpParser\Node\Scalar\Int_;
+use PhpParser\Node\Stmt\Return_;
 use Psalm\Codebase;
 use Psalm\CodeLocation;
 use Psalm\IssueBuffer;
@@ -215,7 +216,11 @@ final class SpecificationRules implements AfterExpressionAnalysisInterface
     {
         $first = $closure->stmts[0] ?? null;
 
-        return $first instanceof \PhpParser\Node\Stmt\Expression ? $first->expr : null;
+        if ($first instanceof \PhpParser\Node\Stmt\Expression) {
+            return $first->expr;
+        }
+
+        return \count($closure->stmts) === 1 && $first instanceof Return_ ? $first->expr : null;
     }
 
     /**

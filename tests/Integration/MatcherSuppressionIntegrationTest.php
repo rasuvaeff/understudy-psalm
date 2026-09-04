@@ -72,7 +72,8 @@ final class MatcherSuppressionIntegrationTest
 
         // And the other direction, in the fixture that collects mistakes: a
         // wrong-kind matcher in a protocol step is reported like any other.
-        // Four of them — a plain `when()`, a `lastCall()` reader, a step of a
+        // Five of them — a plain `when()`, a block closure returning the
+        // specified call, a `lastCall()` reader, a step of a
         // `verifySequence()` and a step of an armed `expectSequence()`.
         $misuse = $this->runPsalm('psalm.xml', 'Misuse');
 
@@ -81,7 +82,7 @@ final class MatcherSuppressionIntegrationTest
                 $misuse,
                 static fn(array $issue): bool => str_contains($issue['message'], '`Arg::string()` matches a string'),
             )),
-            4,
+            5,
         );
     }
 
@@ -89,8 +90,8 @@ final class MatcherSuppressionIntegrationTest
     {
         $report = $this->runPsalm('psalm.xml', 'Misuse');
 
-        // Ten mistakes, ten reports, all of them ours.
-        Assert::same($this->countIn($report, 'Wrong.php'), 10);
+        // Eleven mistakes, eleven reports, all of them ours.
+        Assert::same($this->countIn($report, 'Wrong.php'), 11);
         Assert::same(
             array_values(array_unique(array_map(
                 static fn(array $issue): string => $issue['type'],
@@ -143,7 +144,7 @@ final class MatcherSuppressionIntegrationTest
         // Not our own diagnostics: filling in the builder's template
         // parameter is all the plugin does here, and Psalm checks
         // `returns()`/`answers()` against it on its own.
-        Assert::same($this->countIn($report, 'Wrong.php'), 4);
+        Assert::same($this->countIn($report, 'Wrong.php'), 5);
         Assert::same(
             array_values(array_unique(array_map(
                 static fn(array $issue): string => $issue['type'],

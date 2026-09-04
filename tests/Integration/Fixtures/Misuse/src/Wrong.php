@@ -27,6 +27,15 @@ final class Wrong
         when(static fn(): bool => $gate->open(Arg::string()));
     }
 
+    public function wrongKindOfMatcherInAReturnClosure(): void
+    {
+        $gate = Understudy::for(Gate::class);
+
+        when(static function () use (&$gate): bool {
+            return $gate->open(Arg::string());
+        });
+    }
+
     /**
      * Refining a type narrows it, it does not change its kind: no int
      * argument reaches a `non-empty-string` parameter either.

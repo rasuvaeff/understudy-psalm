@@ -29,6 +29,15 @@ final class Wrong
         when(static fn(): bool => $gate->open(1))->answers(static fn(): string => 'yes');
     }
 
+    public function aWrongValueAfterAReturnClosure(): void
+    {
+        $gate = Understudy::for(Gate::class);
+
+        when(static function () use (&$gate): bool {
+            return $gate->open(1);
+        })->returns('yes');
+    }
+
     public function aWrongValueInASequence(): void
     {
         $gate = Understudy::for(Gate::class);
