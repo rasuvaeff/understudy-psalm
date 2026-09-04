@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.7.0 — 2026-09-04
+
+- **Matcher argument suppression is now scoped to real matcher calls.**
+  `Arg::captor()` builds a captor and is no longer mistaken for a matcher, so
+  Psalm keeps reporting an invalid captor value passed directly to a typed
+  parameter.
+- **`TooFewArguments` suppression now uses file offsets for every scope.** A
+  valid `Arg::rest()` specification and a real under-arity call on the same
+  source line are distinguished, so the real call keeps Psalm's diagnostics.
+- Added control-run integration coverage for both boundaries.
+
 ## 0.6.1 — 2026-09-04
 
 - **Documentation review fixes.** Added the missing `make test-integration`
