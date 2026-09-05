@@ -135,5 +135,15 @@ final class ClosureShapeTest
             'when(fn () => $a->find(1) && $b->find(2));',
             'makes 2 calls',
         ];
+        // A skipped call must not end the count: what follows it still
+        // counts, in both directions of the skip.
+        yield 'a helper before two real calls' => [
+            'when(fn () => $this->ready() && $a->find(1) && $b->find(2));',
+            'makes 2 calls',
+        ];
+        yield 'a chain before another call' => [
+            'when(fn () => $d->head()->tail() && $b->find(1));',
+            'makes 2 calls',
+        ];
     }
 }

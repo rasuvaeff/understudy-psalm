@@ -30,6 +30,12 @@ use PhpParser\NodeVisitorAbstract;
 final class ClosureShape
 {
     /**
+     * Marks a node that is the receiver of a call — set on the way in, read
+     * once the whole body has been walked.
+     */
+    private const string RECEIVER = 'understudy.receiverOfCall';
+
+    /**
      * @param int<0, max> $methodCalls   calls on an object, which is what a
      *                                   specification is made of
      * @param int<0, max> $staticCalls   calls on a class, which a double can
@@ -59,23 +65,16 @@ final class ClosureShape
             return new self(1, 0, 1);
         }
 
-        $visitor = new class extends NodeVisitorAbstract {
-            /** @var int<0, max> */
-            public int $methodCalls = 0;
-
+        $visitor = new class (self::RECEIVER) extends NodeVisitorAbstract {
             /** @var int<0, max> */
             public int $staticCalls = 0;
 
             /** @var list<MethodCall|NullsafeMethodCall> */
             public array $calls = [];
 
-            /**
-             * Receivers of the calls above, by object id — `SplObjectStorage`
-             * would be the shape, and its `attach()` is deprecated in 8.5.
-             *
-             * @var array<int, true>
-             */
-            public array $receivers = [];
+            public function __construct(
+                private readonly string $receiverAttribute,
+            ) {}
 
             #[\Override]
             public function enterNode(Node $node): ?int
@@ -104,9 +103,12 @@ final class ClosureShape
                         return null;
                     }
 
-                    ++$this->methodCalls;
                     $this->calls[] = $node;
-                    $this->receivers[spl_object_id($node->var)] = true;
+                    // Nodes arrive outermost first, so the receiver is marked
+                    // before it is ever visited. php-parser gives a visitor no
+                    // parent, and an index by object id would have to answer
+                    // the same question with a second data structure.
+                    $node->var->setAttribute($this->receiverAttribute, true);
                 }
 
                 if ($node instanceof StaticCall) {
@@ -138,7 +140,7 @@ final class ClosureShape
         $candidates = 0;
 
         foreach ($visitor->calls as $call) {
-            if (isset($visitor->receivers[spl_object_id($call)])) {
+            if ($call->getAttribute(self::RECEIVER) === true) {
                 continue;
             }
 
@@ -149,7 +151,7 @@ final class ClosureShape
             ++$candidates;
         }
 
-        return new self($visitor->methodCalls, $visitor->staticCalls, $candidates);
+        return new self(count($visitor->calls), $visitor->staticCalls, $candidates);
     }
 
     /**
