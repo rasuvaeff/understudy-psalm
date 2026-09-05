@@ -40,6 +40,6 @@ final class MatcherClassTest
         yield 'a foreign class of the same short name' => ['Acme\Console\Arg', false];
         yield 'a global class of the same short name' => ['Arg', false];
         yield 'a name that merely ends in Arg' => ['Rasuvaeff\Understudy\MyArg', false];
-        yield 'our namespace, another class' => ['Rasuvaeff\Understudy\Understudy', false];
+        yield 'our namespace, another class' => [\Rasuvaeff\Understudy\Understudy::class, false];
     }
 }

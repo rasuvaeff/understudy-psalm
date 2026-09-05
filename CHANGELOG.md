@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.8.1 — 2026-09-05
+
+- Allows `rasuvaeff/understudy` `^0.8 || ^0.9`. A bridge, not a widening for
+  its own sake: the engine's 0.9 is the 1.0 candidate — every contract decision
+  of the 1.0 review lands there, and 1.0 follows once it has been driven by real
+  packages — and a project taking it must be able to keep this plugin without a
+  window in which `composer require` silently installs the 0.8 engine beside
+  it. The `^0.8` term is dropped in the release that follows the engine's.
+- Rector is green again, which it had not been since 0.5.0: `rector.php`
+  skips the fixture projects — they are the test input, and
+  `SortCallLikeNamedArgsRector` would have rewritten the `Misuse` fixture
+  that pins named bounds in either order into the order that never showed the
+  bug — and the remaining suggestions are applied. `composer release-check`
+  is what gates a tag, and it had been red under green builds.
+- `infection/infection` moves to `^0.35`, the monorepo's single-major form.
+- Documentation no longer dates the `Arg::rest()` and `Arg::captor()` idioms to
+  «understudy 0.4»: with a floor of `^0.8` every engine this plugin installs
+  beside has them. `AGENTS.md` no longer cites a section of the retired plan.
+
 ## 0.8.0 — 2026-09-05
 
 - Requires `rasuvaeff/understudy` `^0.8`, and requires it as a single term. The

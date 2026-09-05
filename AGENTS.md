@@ -40,7 +40,7 @@ make test-integration
 - **Public hooks only.** `BeforeExpressionAnalysisInterface` records where a
   specification call is; `BeforeAddIssueInterface` decides about the issue.
   Psalm's internal API is off limits, and a diagnostic that cannot be built
-  from public hooks is dropped from the plan rather than faked (plan §7).
+  from public hooks is dropped rather than faked.
 - **Order is why there are two hooks.** Argument issues are raised WHILE the
   call is analysed, so anything that fires afterwards — `AfterFunctionCall`,
   `AfterExpression` — is too late to see them. The scope has to be recorded
