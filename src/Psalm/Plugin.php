@@ -17,6 +17,9 @@ use SimpleXMLElement;
  */
 final class Plugin implements PluginEntryPointInterface
 {
+    /**
+     * Loads the plugin hooks and registers them with Psalm.
+     */
     #[\Override]
     public function __invoke(RegistrationInterface $registration, ?SimpleXMLElement $config = null): void
     {
