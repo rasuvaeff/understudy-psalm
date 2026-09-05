@@ -49,7 +49,7 @@ Everything else the plugin registers is `@internal`.
   its argument report goes quiet inside a specification, it does not count
   against "exactly one call per closure", and a leaked capture is reported.
 - No baseline, no `@psalm-suppress`. If a diagnostic cannot be expressed
-  through public Psalm hooks it is dropped from the plan rather than faked.
+  through public Psalm hooks it is omitted rather than faked.
 
 ## What it reports
 
