@@ -108,7 +108,7 @@ final class ClosureShape
                     // before it is ever visited. php-parser gives a visitor no
                     // parent, and an index by object id would have to answer
                     // the same question with a second data structure.
-                    $node->var->setAttribute($this->receiverAttribute, true);
+                    $node->var->setAttribute($this->receiverAttribute, value: true);
                 }
 
                 if ($node instanceof StaticCall) {

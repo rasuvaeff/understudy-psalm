@@ -17,7 +17,7 @@ Psalm plugin for [understudy](https://github.com/rasuvaeff/understudy).
 
 - PHP 8.3 - 8.5
 - `vimeo/psalm` ^6.16
-- `rasuvaeff/understudy` ^0.8
+- `rasuvaeff/understudy` ^0.8 || ^1.0
 
 ## Installation
 
@@ -70,7 +70,7 @@ Every call-closure verb counts, in either spelling: the free functions
 `lastCall()` and `verifySequence()`. Every closure of a protocol is read, so
 a matcher in its third step is treated exactly like one in a `when()`.
 
-Two understudy 0.4 idioms are covered the same way:
+Two more idioms are covered the same way:
 
 - **`Arg::rest()`** legitimately passes fewer arguments than the contract
   declares — `when(fn () => $storage->recordOutcome('svc', Arg::rest()))` —
