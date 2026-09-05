@@ -37,6 +37,26 @@ final class MatcherSuppressionIntegrationTest
         Assert::true($this->countIn($report, 'CaptureShapes.php') > 0);
     }
 
+    /**
+     * A file full of `foo(...)` and nothing else of ours.
+     *
+     * php-parser stores a VariadicPlaceholder where a first-class callable's
+     * arguments would be and asserts against reading them, so a `before` hook
+     * that reached for them threw — and a throw from a hook takes the whole
+     * Psalm run down: no diagnostics, on any file, at any level. The control
+     * run is what makes this an assertion rather than a wish: with the plugin
+     * crashing, `runPsalm()` returns nothing for every fixture, including the
+     * ones this class asserts are non-empty.
+     */
+    public function firstClassCallableSyntaxDoesNotCrashTheRun(): void
+    {
+        $report = $this->runPsalm('psalm.xml');
+
+        // The run completed and the plugin was still doing its job in it.
+        Assert::same($this->countIn($report, 'FirstClassCallable.php'), 0);
+        Assert::true($this->countIn($report, 'Control.php') > 0);
+    }
+
     public function withThePluginOnlyTheLeakIsReported(): void
     {
         $report = $this->runPsalm('psalm.xml');
@@ -126,7 +146,7 @@ final class MatcherSuppressionIntegrationTest
         Assert::same(
             count(array_filter(
                 $misuse,
-                static fn(array $issue): bool => str_contains($issue['message'], '`Arg::string()` matches a string'),
+                static fn(array $issue): bool => str_contains($issue['message'], '`Arg::string()` matches a value of type string'),
             )),
             5,
         );
@@ -136,8 +156,10 @@ final class MatcherSuppressionIntegrationTest
     {
         $report = $this->runPsalm('psalm.xml', 'Misuse');
 
-        // Eleven mistakes, eleven reports, all of them ours.
-        Assert::same($this->countIn($report, 'Wrong.php'), 11);
+        // Sixteen mistakes, sixteen reports, all of them ours. The last five
+        // are impossible bounds written past the first link of the chain,
+        // which the rule used to walk straight past.
+        Assert::same($this->countIn($report, 'Wrong.php'), 16);
         Assert::same(
             array_values(array_unique(array_map(
                 static fn(array $issue): string => $issue['type'],
@@ -177,7 +199,7 @@ final class MatcherSuppressionIntegrationTest
         Assert::same(
             count(array_filter(
                 $report,
-                static fn(array $issue): bool => str_contains($issue['message'], '`Arg::int()` matches a int'),
+                static fn(array $issue): bool => str_contains($issue['message'], '`Arg::int()` matches a value of type int'),
             )),
             1,
         );

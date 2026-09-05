@@ -114,5 +114,36 @@ final class ClosureShapeTest
         // string. Nothing to read, and nothing to complain about either.
         yield 'a variable instead of a closure' => ['when($specification);', null];
         yield 'a first-class callable' => ['when($double->find(...));', null];
+
+        // Only one of the calls written below can reach a double: the engine
+        // throws on the first one that does and never runs what follows, and a
+        // call on `$this` is the test class's own helper. Counting them all
+        // reported correct specifications as making too many calls.
+        yield 'the double comes from a getter' => ['when(fn () => $this->gate()->find(1));', null];
+        yield 'an argument comes from a helper' => ['when(fn () => $double->find($this->id()));', null];
+        yield 'the call is wrapped in a helper' => ['when(fn () => $this->pass($double->find(1)));', null];
+        yield 'a chain on the double is one specified call' => [
+            'when(fn () => $double->head()->tail());',
+            null,
+        ];
+        // The total still answers "no call at all", so a specification that
+        // reaches its double only through a helper is not accused of
+        // specifying nothing.
+        yield 'a helper that reaches the double is not empty' => ['when(fn () => $this->configure());', null];
+        // Two calls that could each land on a double are still two.
+        yield 'two calls on two doubles' => [
+            'when(fn () => $a->find(1) && $b->find(2));',
+            'makes 2 calls',
+        ];
+        // A skipped call must not end the count: what follows it still
+        // counts, in both directions of the skip.
+        yield 'a helper before two real calls' => [
+            'when(fn () => $this->ready() && $a->find(1) && $b->find(2));',
+            'makes 2 calls',
+        ];
+        yield 'a chain before another call' => [
+            'when(fn () => $d->head()->tail() && $b->find(1));',
+            'makes 2 calls',
+        ];
     }
 }

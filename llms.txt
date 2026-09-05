@@ -33,8 +33,14 @@ Everything else the plugin registers is `@internal`.
   or a `Captor::capture()` whose receiver Psalm resolved when asked for the
   method's return type. A foreign class named `Arg`, and anybody else's
   `capture()`, keep their diagnostics; ours under an alias loses them.
-- A matcher passed to a REAL call is still reported. That is `MatcherLeaked`
-  at runtime, and hiding it would make the plugin worse than none.
+- A matcher passed to a REAL call is still reported -- BY PSALM, and only at
+  `errorLevel="1"`, where its own `MixedArgument` lives. This plugin
+  suppresses inside a specification and reports nothing of its own here; at
+  level 2 and above a leaked matcher draws nothing until the runtime
+  `MatcherLeaked`. `understudy-phpstan` has `understudy.matcherLeak` and
+  reports at every level; the deliberate difference is that a textual leak
+  rule also misreads a matcher reaching its specification through a variable,
+  a property or a helper.
 - `Arg::rest()` (understudy 0.4) legitimately passes fewer arguments than the
   contract declares: `TooFewArguments` goes quiet only when the call is
   inside a specification AND its last written argument is `Arg::rest()`. A

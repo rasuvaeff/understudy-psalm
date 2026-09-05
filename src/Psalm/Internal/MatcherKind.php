@@ -103,7 +103,10 @@ final class MatcherKind
         }
 
         return sprintf(
-            '`Arg::%s()` matches a %s, and this parameter accepts %s. '
+            // "a value of type int", not "a int": the kind is a type name, and
+            // an article picked for it in advance is wrong half the time. The
+            // PHPStan plugin words the same sentence this way already.
+            '`Arg::%s()` matches a value of type %s, and this parameter accepts %s. '
             . 'No argument can satisfy both, so the expectation can never match.',
             $matcher,
             $kind,

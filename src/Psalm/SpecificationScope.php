@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Rasuvaeff\Understudy\Psalm;
 
+use PhpParser\Node\Expr\CallLike;
 use PhpParser\Node\Expr\FuncCall;
 use PhpParser\Node\Expr\MethodCall;
 use PhpParser\Node\Expr\NullsafeMethodCall;
@@ -39,6 +40,17 @@ final class SpecificationScope implements BeforeExpressionAnalysisInterface
     public static function beforeExpressionAnalysis(BeforeExpressionAnalysisEvent $event): ?bool
     {
         $expression = $event->getExpr();
+
+        // `foo(...)` is a closure, not a call. php-parser stores a
+        // VariadicPlaceholder where the arguments would be and asserts against
+        // reading them, so `getArgs()` below is an AssertionError under
+        // `zend.assertions=1` and a read of a missing property under `-1` —
+        // and a throw from a `before` hook takes the whole Psalm run down,
+        // whatever the file was about. Nothing here can apply to a callable
+        // anyway: it specifies nothing and passes no matcher.
+        if ($expression instanceof CallLike && $expression->isFirstClassCallable()) {
+            return null;
+        }
 
         if (self::endsWithRest($expression)) {
             // Recorded for every call, specification or not: at this point
