@@ -150,7 +150,7 @@ final class MatcherKindTest
         // what a user acts on.
         Assert::same(
             $problem,
-            '`Arg::int()` matches a int, and this parameter accepts string|null. '
+            '`Arg::int()` matches a value of type int, and this parameter accepts string|null. '
             . 'No argument can satisfy both, so the expectation can never match.',
         );
     }
@@ -163,7 +163,7 @@ final class MatcherKindTest
     {
         Assert::same(
             MatcherKind::problem('INT', self::of(new Atomic\TString())),
-            '`Arg::INT()` matches a int, and this parameter accepts string. '
+            '`Arg::INT()` matches a value of type int, and this parameter accepts string. '
             . 'No argument can satisfy both, so the expectation can never match.',
         );
     }

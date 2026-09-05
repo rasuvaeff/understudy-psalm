@@ -53,6 +53,17 @@ The last row is the point. A matcher reaching a real call raises
 `MatcherLeaked` at runtime, and a plugin that hid it would be worse than no
 plugin at all.
 
+**What reports that last row is Psalm, not this plugin, and it needs
+`errorLevel="1"`.** The plugin suppresses; the report it leaves standing is
+Psalm's own `MixedArgument`, which exists only at level 1. At levels 2 and
+above a leaked matcher draws nothing here — the runtime `MatcherLeaked` is
+what catches it, one test run later. The PHPStan plugin has a rule of its own
+(`understudy.matcherLeak`) and reports at every level; this one deliberately
+does not, because a rule strict enough to catch a leak textually also
+misreads a matcher that reaches its specification through a variable, a
+property or a helper, and a false accusation costs more here than a missed
+one.
+
 Every call-closure verb counts, in either spelling: the free functions
 `when()`, `expect()`, `expectSequence()` and `verify()`, the same names on
 `Understudy::`, and the readers that exist only there — `calls()`,

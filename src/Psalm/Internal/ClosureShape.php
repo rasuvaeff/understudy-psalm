@@ -10,6 +10,7 @@ use PhpParser\Node\Expr\Closure;
 use PhpParser\Node\Expr\MethodCall;
 use PhpParser\Node\Expr\NullsafeMethodCall;
 use PhpParser\Node\Expr\StaticCall;
+use PhpParser\Node\Expr\Variable;
 use PhpParser\NodeTraverser;
 use PhpParser\NodeVisitor;
 use PhpParser\NodeVisitorAbstract;
@@ -33,10 +34,15 @@ final class ClosureShape
      *                                   specification is made of
      * @param int<0, max> $staticCalls   calls on a class, which a double can
      *                                   never intercept
+     * @param int<0, max> $candidateCalls the subset of $methodCalls that could
+     *                                   land on a double: the engine throws
+     *                                   `InvocationSignal` on the first call
+     *                                   that does, and never sees the rest
      */
     private function __construct(
         public int $methodCalls,
         public int $staticCalls,
+        public int $candidateCalls,
     ) {}
 
     public static function of(Node $closure): self
@@ -50,7 +56,7 @@ final class ClosureShape
         if ($body === null) {
             // Not a closure literal — a variable, a first-class callable, a
             // string. Nothing to read, and nothing to complain about either.
-            return new self(1, 0);
+            return new self(1, 0, 1);
         }
 
         $visitor = new class extends NodeVisitorAbstract {
@@ -60,11 +66,28 @@ final class ClosureShape
             /** @var int<0, max> */
             public int $staticCalls = 0;
 
+            /** @var list<MethodCall|NullsafeMethodCall> */
+            public array $calls = [];
+
+            /**
+             * Receivers of the calls above, by object id — `SplObjectStorage`
+             * would be the shape, and its `attach()` is deprecated in 8.5.
+             *
+             * @var array<int, true>
+             */
+            public array $receivers = [];
+
             #[\Override]
             public function enterNode(Node $node): ?int
             {
                 if ($node instanceof Closure || $node instanceof ArrowFunction) {
                     return NodeVisitor::DONT_TRAVERSE_CHILDREN;
+                }
+
+                // `$d->m(...)` inside a specification is a closure the body
+                // never calls, and its arguments cannot be read at all.
+                if ($node instanceof Node\Expr\CallLike && $node->isFirstClassCallable()) {
+                    return null;
                 }
 
                 if ($node instanceof MethodCall || $node instanceof NullsafeMethodCall) {
@@ -82,6 +105,8 @@ final class ClosureShape
                     }
 
                     ++$this->methodCalls;
+                    $this->calls[] = $node;
+                    $this->receivers[spl_object_id($node->var)] = true;
                 }
 
                 if ($node instanceof StaticCall) {
@@ -95,7 +120,36 @@ final class ClosureShape
         $traverser = new NodeTraverser($visitor);
         $traverser->traverse($body);
 
-        return new self($visitor->methodCalls, $visitor->staticCalls);
+        // Which of those calls could actually reach a double. Two kinds cannot,
+        // and counting them is how a correct specification was reported as
+        // making too many calls:
+        //
+        //   - the receiver of another call. `$this->gate()->find(1)` and
+        //     `$double->head()->tail()` are one specified call each: the engine
+        //     throws on the first call that lands on a double and never runs
+        //     what follows.
+        //   - a call on `$this`. That is the test class's own helper —
+        //     `$gate->find($this->id())`, `$this->passThrough($double->m())` —
+        //     and a test is not a double.
+        //
+        // The total still answers "no call at all", so a specification that
+        // reaches its double only through a helper stays silent rather than
+        // becoming a new false accusation.
+        $candidates = 0;
+
+        foreach ($visitor->calls as $call) {
+            if (isset($visitor->receivers[spl_object_id($call)])) {
+                continue;
+            }
+
+            if ($call->var instanceof Variable && $call->var->name === 'this') {
+                continue;
+            }
+
+            ++$candidates;
+        }
+
+        return new self($visitor->methodCalls, $visitor->staticCalls, $candidates);
     }
 
     /**
@@ -113,11 +167,11 @@ final class ClosureShape
                 . 'Call the method you mean: when(fn () => $double->method($argument)).';
         }
 
-        if ($this->methodCalls > 1) {
+        if ($this->candidateCalls > 1) {
             return sprintf(
                 'the closure makes %d calls, and a specification describes exactly one. '
                 . 'Split it, or hoist the calls that are not being specified out of the closure.',
-                $this->methodCalls,
+                $this->candidateCalls,
             );
         }
 

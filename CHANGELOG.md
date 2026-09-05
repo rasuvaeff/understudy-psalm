@@ -5,6 +5,37 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+- **The plugin no longer crashes Psalm on `foo(...)`.** A first-class callable
+  carries a `VariadicPlaceholder` where its arguments would be, and php-parser
+  asserts against reading them; the `before` hook read them on every call it
+  saw, so a single `strlen(...)` anywhere in the analysed code took the whole
+  run down — no diagnostics, on any file, at any level. That is PHP 8.1 syntax
+  and this package declares 8.3–8.5.
+- **`->returns(...)->times(5, 2)` is reported as impossible again.** The
+  cardinality rule read only the immediate receiver of `times()`, so it fired
+  on `expect(...)->times(5, 2)` and stayed silent on every spelling with a
+  link in between — including the one the engine's own README recommends for a
+  repeated call.
+- **`times(maximum: 5, minimum: 1)` is no longer reported as impossible.** The
+  bounds were read positionally, so a named call with the arguments in the
+  other order looked like `(5, 1)`. Correct code turned red, with no way around
+  it but removing the plugin.
+- **A specification that reaches its double through a helper is silent.**
+  `when(fn () => $this->gate()->find(1))`, `$double->find($this->id())` and
+  `$this->passThrough($double->find(1))` were all reported as "the closure
+  makes 2 calls". The engine throws on the first call that lands on a double
+  and never sees the rest, so a call that is the receiver of another, or one
+  made on `$this`, is not a second specified call. The total is still what
+  answers "no call at all", so a specification that only reaches its double
+  through a helper is not accused of specifying nothing either.
+- A matcher whose kind cannot fit is described as matching "a value of type
+  int" rather than "a int" — the wording `understudy-phpstan` already used.
+- README ×2 and `llms.txt` now say that a leaked matcher is reported by Psalm's
+  own `MixedArgument` and therefore only at `errorLevel="1"`, and why this
+  plugin has no rule of its own for it.
+
 ## 0.7.0 — 2026-09-04
 
 - **Matcher argument suppression is now scoped to real matcher calls.**
@@ -15,6 +46,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   valid `Arg::rest()` specification and a real under-arity call on the same
   source line are distinguished, so the real call keeps Psalm's diagnostics.
 - Added control-run integration coverage for both boundaries.
+- Calls returned from a specification closure are analysed (#31).
 
 ## 0.6.1 — 2026-09-04
 

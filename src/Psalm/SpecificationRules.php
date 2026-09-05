@@ -7,9 +7,11 @@ namespace Rasuvaeff\Understudy\Psalm;
 use PhpParser\Node\Arg;
 use PhpParser\Node\Expr;
 use PhpParser\Node\Expr\ArrowFunction;
+use PhpParser\Node\Expr\CallLike;
 use PhpParser\Node\Expr\Closure;
 use PhpParser\Node\Expr\FuncCall;
 use PhpParser\Node\Expr\MethodCall;
+use PhpParser\Node\Expr\NullsafeMethodCall;
 use PhpParser\Node\Expr\StaticCall;
 use PhpParser\Node\Identifier;
 use PhpParser\Node\Name;
@@ -52,6 +54,13 @@ final class SpecificationRules implements AfterExpressionAnalysisInterface
     {
         $expression = $event->getExpr();
         $source = $event->getStatementsSource();
+
+        // See SpecificationScope: a first-class callable carries no arguments
+        // and reading them throws. `when(...)` is a closure over the verb, not
+        // a specification, so there is nothing here to check either.
+        if ($expression instanceof CallLike && $expression->isFirstClassCallable()) {
+            return null;
+        }
 
         if (($expression instanceof FuncCall || $expression instanceof StaticCall)
             && self::isSpecification($expression)
@@ -154,15 +163,12 @@ final class SpecificationRules implements AfterExpressionAnalysisInterface
             return;
         }
 
-        if (!self::isSpecification($call->var)) {
+        if (!self::isSpecificationChain($call->var)) {
             return;
         }
 
-        $arguments = array_values($call->getArgs());
-        $problem = Cardinality::timesProblem(
-            self::literalInt($arguments[0] ?? null),
-            self::literalInt($arguments[1] ?? null),
-        );
+        [$minimum, $maximum] = self::timesBounds($call);
+        $problem = Cardinality::timesProblem($minimum, $maximum);
 
         if ($problem !== null) {
             self::report($problem, $call, $source);
@@ -346,6 +352,63 @@ final class SpecificationRules implements AfterExpressionAnalysisInterface
         }
 
         return $literals;
+    }
+
+    /**
+     * Whether `->times()` sits anywhere on a specification chain, not only
+     * directly on the verb.
+     *
+     * `expect(...)->returns('b')->times(5, 2)` is the spelling the engine's own
+     * README recommends for a repeated call, and reading only the immediate
+     * receiver saw a `MethodCall` there and gave up — so the check fired on
+     * one of the four spellings people write.
+     */
+    private static function isSpecificationChain(Expr $expression): bool
+    {
+        while ($expression instanceof MethodCall || $expression instanceof NullsafeMethodCall) {
+            $expression = $expression->var;
+        }
+
+        return self::isSpecification($expression);
+    }
+
+    /**
+     * The bounds of `times()`, by name where the call names them.
+     *
+     * `times(maximum: 5, minimum: 1)` is valid and means one to five calls;
+     * read positionally it says `(5, 1)` and correct code was reported as
+     * impossible — which costs more than the missed report above, because
+     * there is no way around it but removing the plugin.
+     *
+     * @return array{0: ?int, 1: ?int}
+     */
+    private static function timesBounds(MethodCall $call): array
+    {
+        $minimum = null;
+        $maximum = null;
+        $position = 0;
+
+        foreach ($call->getArgs() as $argument) {
+            if ($argument->name instanceof Identifier) {
+                match (strtolower($argument->name->toString())) {
+                    'minimum' => $minimum = self::literalInt($argument),
+                    'maximum' => $maximum = self::literalInt($argument),
+                    default => null,
+                };
+
+                continue;
+            }
+
+            match ($position) {
+                0 => $minimum = self::literalInt($argument),
+                1 => $maximum = self::literalInt($argument),
+                default => null,
+            };
+
+            ++$position;
+        }
+
+        return [$minimum, $maximum];
     }
 
     private static function literalInt(?Arg $argument): ?int

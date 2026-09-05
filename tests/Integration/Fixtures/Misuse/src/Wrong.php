@@ -122,4 +122,21 @@ final class Wrong
             static fn(): bool => $gate->open(Arg::string()),
         );
     }
+
+    /**
+     * The cardinality check used to read only the first link of the chain, so
+     * every one of these was silent while `expect(...)->times(5, 2)` was
+     * reported. `->returns(...)->times(...)` is the spelling the engine's own
+     * README recommends for a repeated call.
+     */
+    public function impossibleBoundsLaterInTheChain(): void
+    {
+        $gate = Understudy::for(Gate::class);
+
+        expect(static fn(): bool => $gate->open(1))->returns(true)->times(5, 2);
+        when(static fn(): bool => $gate->open(2))->returns(true)->times(9, 3);
+        expect(static fn(): bool => $gate->open(3))->throws(new \RuntimeException())->times(5, 2);
+        expect(static fn(): bool => $gate->open(4))->ordered()->times(5, 2);
+        expect(static fn(): bool => $gate->open(5))->returns(true)->ordered()->times(5, 2);
+    }
 }
