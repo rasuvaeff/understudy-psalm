@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.8.2 — 2026-09-05
+
+- Guards the plugin's load list with a regression test and completes the
+  plugin's public summary in the generated family reference.
+- Removes the stale 1.0 wording from `llms.txt` while the engine family remains
+  on its 0.x compatibility line.
+
 ## 0.8.1 — 2026-09-05
 
 - Allows `rasuvaeff/understudy` `^0.8 || ^0.9`. A bridge, not a widening for
