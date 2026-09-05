@@ -5,8 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## 0.8.0 — 2026-09-05
 
+- Requires `rasuvaeff/understudy` `^0.8`, and requires it as a single term. The
+  accumulating union it carried (`^0.4 || ^0.5 || …`) had to be widened by hand
+  on every core release, and a package that misses one becomes uninstallable
+  beside its own engine.
 - **The plugin no longer crashes Psalm on `foo(...)`.** A first-class callable
   carries a `VariadicPlaceholder` where its arguments would be, and php-parser
   asserts against reading them; the `before` hook read them on every call it
