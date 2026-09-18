@@ -20,7 +20,7 @@ final class PluginTest
 {
     public function everyPsalmSourceFileIsLoadedByThePlugin(): void
     {
-        $source = (string) file_get_contents(dirname(__DIR__) . '/src/Psalm/Plugin.php');
+        $source = (string) file_get_contents(__DIR__ . '/../src/Psalm/Plugin.php');
         preg_match_all("/require_once __DIR__ \. '([^']+)';/", $source, $matches);
 
         $required = array_map(
@@ -29,7 +29,7 @@ final class PluginTest
         );
         $files = [];
         $iterator = new \RecursiveIteratorIterator(
-            new \RecursiveDirectoryIterator(dirname(__DIR__) . '/src/Psalm', \FilesystemIterator::SKIP_DOTS),
+            new \RecursiveDirectoryIterator(__DIR__ . '/../src/Psalm', \FilesystemIterator::SKIP_DOTS),
         );
 
         foreach ($iterator as $file) {
@@ -37,7 +37,7 @@ final class PluginTest
                 continue;
             }
 
-            $files[] = str_replace('\\', '/', substr($file->getPathname(), strlen(dirname(__DIR__) . '/src/Psalm/')));
+            $files[] = str_replace('\\', '/', substr($file->getPathname(), strlen(__DIR__ . '/../src/Psalm/')));
         }
 
         sort($required);
