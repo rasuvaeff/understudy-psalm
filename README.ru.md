@@ -17,7 +17,7 @@ Psalm-плагин для [understudy](https://github.com/rasuvaeff/understudy).
 
 - PHP 8.3 - 8.5
 - `vimeo/psalm` ^6.16
-- `rasuvaeff/understudy` ^0.9 || ^0.10
+- `rasuvaeff/understudy` ^1.0
 
 ## Установка
 
