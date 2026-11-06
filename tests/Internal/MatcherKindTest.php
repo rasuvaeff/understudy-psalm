@@ -117,7 +117,7 @@ final class MatcherKindTest
         ];
         yield 'string into a keyed array' => [
             'string',
-            self::of(new Atomic\TKeyedArray(['id' => Type::getInt()])),
+            self::of(Atomic\TKeyedArray::make(['id' => Type::getInt()])),
             true,
         ];
         yield 'string into an iterable' => [

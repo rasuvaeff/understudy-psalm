@@ -97,13 +97,13 @@ final class WireShape
             return null;
         }
 
-        return self::shape($class, new Union([new TKeyedArray($doubles)]));
+        return self::shape($class, new Union([TKeyedArray::make($doubles)]));
     }
 
     private static function shape(string $class, Union $doubles): Union
     {
         return new Union([
-            new TKeyedArray([
+            TKeyedArray::make([
                 'sut' => new Union([new TNamedObject($class)]),
                 'doubles' => $doubles,
             ]),
