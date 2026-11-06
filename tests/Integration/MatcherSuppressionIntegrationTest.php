@@ -211,14 +211,16 @@ final class MatcherSuppressionIntegrationTest
 
         // Not our own diagnostics: filling in the builder's template
         // parameter is all the plugin does here, and Psalm checks
-        // `returns()`/`answers()` against it on its own.
+        // `returns()`/`answers()` against it on its own. Psalm 7 files the
+        // wrong-callback-return case as InvalidScalarArgument; Psalm 6
+        // called it InvalidArgument.
         Assert::same($this->countIn($report, 'Wrong.php'), 5);
         Assert::same(
             array_values(array_unique(array_map(
                 static fn(array $issue): string => $issue['type'],
                 $report,
             ))),
-            ['InvalidArgument'],
+            ['InvalidArgument', 'InvalidScalarArgument'],
         );
 
         // Answers that fit, and the shapes the provider declines to judge.
