@@ -222,7 +222,7 @@ final class MatcherSuppressionIntegrationTest
                     static fn(array $issue): string => $issue['type'],
                     $report,
                 )),
-                static fn(string $type): bool => !in_array($type, ['InvalidArgument', 'InvalidScalarArgument'], true),
+                static fn(string $type): bool => !in_array($type, ['InvalidArgument', 'InvalidScalarArgument'], strict: true),
             )),
             [],
         );
