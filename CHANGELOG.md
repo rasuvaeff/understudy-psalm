@@ -22,7 +22,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   never judged, because a double of a final class can implement it. The
   `returns()` half of #63 needs no rule: `returns('abc')` on `: int` and
   `returns(true)` on `: false` are already Psalm's own `InvalidArgument`
-  through the builder's template parameter, and are now pinned by fixtures.
+  through the builder's template parameter (an INFO at `errorLevel` 7 and 8),
+  and are now pinned by fixtures.
 - **Added.** The receiver of a specified call is read from Psalm's node types,
   so a double held in a field (`$this->repository`) or reached through a
   getter gets its builder type and matcher checks, not only a local variable
@@ -36,6 +37,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the contract; the issue type is.
 - **Internal.** One single-call extractor, `ClosureShape::singleCall()`, with
   exactly-one-statement semantics, replaces three that disagreed (#65). The
+  matcher check used to read the first statement of a longer closure; it now
+  reads only a closure that is the one call, as the builder type and the
+  PHPStan extension already did — fewer reports, never more. The
   analyser-independent code (`Cardinality`, `ClosureShape`, `VerbNames`) is
   token-identical to the PHPStan extension's copy and guarded by a
   fingerprint test present in both repositories (#64).
