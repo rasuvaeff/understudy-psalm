@@ -4,6 +4,11 @@ declare(strict_types=1);
 
 namespace Rasuvaeff\Understudy\Psalm\Internal;
 
+use PhpParser\Node\Arg;
+use PhpParser\Node\Expr\ConstFetch;
+use PhpParser\Node\Identifier;
+use PhpParser\Node\Scalar\Int_;
+
 /**
  * Cardinality claims that cannot be satisfied by any run.
  *
@@ -93,5 +98,39 @@ final class Cardinality
             \is_int($minimum) ? $minimum : null,
             \is_int($maximum) ? $maximum : null,
         );
+    }
+
+    /**
+     * The literal value of every named argument, by name — what
+     * {@see verifyProblem()} reads. Anything that is not an integer or
+     * `true`/`false` written out is null: a value the engine answers at
+     * runtime, not a claim this check can read.
+     *
+     * @param list<Arg> $arguments
+     *
+     * @return array<string, int|bool|null>
+     */
+    public static function namedLiterals(array $arguments): array
+    {
+        $literals = [];
+
+        foreach ($arguments as $argument) {
+            if (!$argument->name instanceof Identifier) {
+                continue;
+            }
+
+            $value = $argument->value;
+            $literals[$argument->name->toString()] = match (true) {
+                $value instanceof Int_ => $value->value,
+                $value instanceof ConstFetch => match (strtolower($value->name->toString())) {
+                    'true' => true,
+                    'false' => false,
+                    default => null,
+                },
+                default => null,
+            };
+        }
+
+        return $literals;
     }
 }

@@ -27,6 +27,14 @@ final class Right
         Understudy::when(static fn(): bool => $gate->open(4))->returns(true);
     }
 
+    public function literalAnswersThatFit(): void
+    {
+        $gate = Understudy::for(Gate::class);
+
+        when(static fn(): int => $gate->count())->returns(3);
+        when(static fn(): bool => $gate->closed())->returns(false);
+    }
+
     public function throwingIsNeverAboutTheReturnType(): void
     {
         $gate = Understudy::for(Gate::class);

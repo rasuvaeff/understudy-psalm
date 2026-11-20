@@ -83,4 +83,15 @@ final class VerbNames
         return strtolower(ltrim($class, '\\')) === self::NAMESPACE_PREFIX . 'understudy'
             && \in_array(strtolower($method), self::STATIC_VERBS, strict: true);
     }
+
+    /**
+     * The verb itself, without the namespace it was written with.
+     */
+    public static function shortVerb(string $name): string
+    {
+        $lower = strtolower($name);
+        $separator = strrpos($lower, '\\');
+
+        return $separator === false ? $lower : substr($lower, $separator + 1);
+    }
 }

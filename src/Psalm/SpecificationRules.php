@@ -8,6 +8,7 @@ use PhpParser\Node\Arg;
 use PhpParser\Node\Expr;
 use PhpParser\Node\Expr\ArrowFunction;
 use PhpParser\Node\Expr\CallLike;
+use PhpParser\Node\Expr\ClassConstFetch;
 use PhpParser\Node\Expr\Closure;
 use PhpParser\Node\Expr\FuncCall;
 use PhpParser\Node\Expr\MethodCall;
@@ -16,19 +17,21 @@ use PhpParser\Node\Expr\StaticCall;
 use PhpParser\Node\Identifier;
 use PhpParser\Node\Name;
 use PhpParser\Node\Scalar\Int_;
-use PhpParser\Node\Stmt\Return_;
 use Psalm\Codebase;
 use Psalm\CodeLocation;
 use Psalm\IssueBuffer;
+use Psalm\NodeTypeProvider;
 use Psalm\Plugin\EventHandler\AfterExpressionAnalysisInterface;
 use Psalm\Plugin\EventHandler\Event\AfterExpressionAnalysisEvent;
 use Psalm\StatementsSource;
+use Psalm\Type\Atomic\TGenericObject;
 use Psalm\Type\Atomic\TNamedObject;
 use Psalm\Type\Union;
 use Rasuvaeff\Understudy\Psalm\Internal\Cardinality;
 use Rasuvaeff\Understudy\Psalm\Internal\ClosureShape;
 use Rasuvaeff\Understudy\Psalm\Internal\MatcherClass;
 use Rasuvaeff\Understudy\Psalm\Internal\MatcherKind;
+use Rasuvaeff\Understudy\Psalm\Internal\ReceiverType;
 use Rasuvaeff\Understudy\Psalm\Internal\VerbNames;
 use Rasuvaeff\Understudy\Psalm\Issue\UnderstudyMisuse;
 
@@ -141,8 +144,8 @@ final class SpecificationRules implements AfterExpressionAnalysisInterface
             }
         }
 
-        if (self::verbOf($call) === 'verify') {
-            $problem = Cardinality::verifyProblem(self::namedLiterals($arguments));
+        if (VerbNames::shortVerb(self::writtenName($call)) === 'verify') {
+            $problem = Cardinality::verifyProblem(Cardinality::namedLiterals($arguments));
 
             if ($problem !== null) {
                 self::report($problem, $call, $source);
@@ -183,11 +186,7 @@ final class SpecificationRules implements AfterExpressionAnalysisInterface
         AfterExpressionAnalysisEvent $event,
         StatementsSource $source,
     ): void {
-        $body = match (true) {
-            $closure instanceof ArrowFunction => $closure->expr,
-            $closure instanceof Closure => self::firstExpression($closure),
-            default => null,
-        };
+        $body = ClosureShape::singleCall($closure);
 
         if (!$body instanceof MethodCall || !$body->name instanceof Identifier) {
             return;
@@ -199,15 +198,17 @@ final class SpecificationRules implements AfterExpressionAnalysisInterface
             return;
         }
 
+        $codebase = $event->getCodebase();
+        $types = $source->getNodeTypeProvider();
+
         foreach (array_values($body->getArgs()) as $position => $argument) {
-            $matcher = self::matcherName($argument->value);
             $parameter = $parameters[$position] ?? null;
 
-            if ($matcher === null || $matcher === '' || !$parameter instanceof Union) {
+            if (!$parameter instanceof Union) {
                 continue;
             }
 
-            $problem = MatcherKind::problem($matcher, $parameter);
+            $problem = self::matcherProblem($argument->value, $parameter, $codebase, $types);
 
             if ($problem !== null) {
                 self::report($problem, $argument->value, $source);
@@ -215,57 +216,152 @@ final class SpecificationRules implements AfterExpressionAnalysisInterface
         }
     }
 
-    /**
-     * The single expression a closure body is, when it is one.
-     */
-    private static function firstExpression(Closure $closure): ?Expr
-    {
-        $first = $closure->stmts[0] ?? null;
+    private static function matcherProblem(
+        Expr $argument,
+        Union $parameter,
+        Codebase $codebase,
+        NodeTypeProvider $types,
+    ): ?string {
+        $unrelated = static fn(string $one, string $other): bool => self::unrelatedClasses($codebase, $one, $other);
 
-        if ($first instanceof \PhpParser\Node\Stmt\Expression) {
-            return $first->expr;
+        $captured = self::capturedClass($argument, $types);
+
+        if ($captured !== null) {
+            return MatcherKind::instanceProblem('`capture()`', $captured, $parameter, $unrelated);
         }
 
-        return \count($closure->stmts) === 1 && $first instanceof Return_ ? $first->expr : null;
+        $matcher = self::matcherName($argument);
+
+        if ($matcher === null || $matcher === '' || !$argument instanceof StaticCall) {
+            return null;
+        }
+
+        if (strtolower($matcher) !== 'instanceof') {
+            return MatcherKind::problem($matcher, $parameter);
+        }
+
+        $class = self::literalClass($argument->getArgs()[0]->value ?? null);
+
+        return $class === null
+            ? null
+            : MatcherKind::instanceProblem('`Arg::' . $matcher . '()`', $class, $parameter, $unrelated);
+    }
+
+    /**
+     * The class a captor's `capture()` holds instances of, read off the
+     * receiver's resolved type: our `Captor` with a class for its template.
+     * A namesake `capture()` (#18) or an untyped captor answers null.
+     *
+     * @return non-empty-string|null
+     */
+    private static function capturedClass(Expr $argument, NodeTypeProvider $types): ?string
+    {
+        if (!$argument instanceof MethodCall
+            || !$argument->name instanceof Identifier
+            || $argument->name->toLowerString() !== 'capture'
+            || $argument->getArgs() !== []
+        ) {
+            return null;
+        }
+
+        $receiver = $types->getType($argument->var);
+
+        if (!$receiver instanceof \Psalm\Type\Union || !$receiver->isSingle()) {
+            return null;
+        }
+
+        $captor = $receiver->getSingleAtomic();
+
+        if (!$captor instanceof TGenericObject
+            || strtolower($captor->value) !== strtolower(\Rasuvaeff\Understudy\Captor::class)
+        ) {
+            return null;
+        }
+
+        $held = $captor->type_params[0] ?? null;
+
+        if ($held === null || !$held->isSingle()) {
+            return null;
+        }
+
+        $object = $held->getSingleAtomic();
+
+        return $object instanceof TNamedObject && $object->extra_types === [] && $object->value !== ''
+            ? $object->value
+            : null;
+    }
+
+    /**
+     * `Foo::class`, written out — the one spelling whose class is known
+     * without guessing. `self::class`, `static::class` and a variable are
+     * left alone.
+     *
+     * @return non-empty-string|null
+     */
+    private static function literalClass(?Expr $expression): ?string
+    {
+        if (!$expression instanceof ClassConstFetch
+            || !$expression->class instanceof Name
+            || !$expression->name instanceof Identifier
+            || $expression->name->toLowerString() !== 'class'
+            || $expression->class->isSpecialClassName()
+        ) {
+            return null;
+        }
+
+        $class = ltrim(self::resolvedName($expression->class), '\\');
+
+        return $class === '' ? null : $class;
+    }
+
+    /**
+     * Two classes neither of which extends the other — no object is an
+     * instance of both. An interface or a name Psalm does not know is never
+     * unrelated: the answer there is a maybe.
+     */
+    private static function unrelatedClasses(Codebase $codebase, string $one, string $other): bool
+    {
+        if (strtolower($one) === strtolower($other)) {
+            return false;
+        }
+
+        foreach ([$one, $other] as $name) {
+            if (!$codebase->classExists($name) || $codebase->interfaceExists($name)) {
+                return false;
+            }
+        }
+
+        return !$codebase->classExtendsOrImplements($one, $other)
+            && !$codebase->classExtendsOrImplements($other, $one);
     }
 
     /**
      * The declared type of each parameter of the called method, or null when
-     * the target cannot be resolved — an untyped variable, a method Psalm has
-     * no storage for, anything the plugin should stay quiet about. A
-     * parameter with no declared type is a null entry: there is a parameter
-     * at that position, and nothing is known about it.
+     * the target cannot be resolved — a receiver of unknown type, a method
+     * Psalm has no storage for, anything the plugin should stay quiet about.
+     * A parameter with no declared type is a null entry: there is a
+     * parameter at that position, and nothing is known about it.
      *
-     * The receiver has to be a plain variable, and that is a limit rather
-     * than a preference: `$context->vars_in_scope` is keyed by variable name,
-     * so a double reached through `$this->repository` or the result of a call
-     * has no entry to look up. Those specifications are left alone — the
-     * plugin says less about them, which is the direction it fails in
-     * everywhere else too.
+     * The receiver is any expression Psalm typed — `$this->repository` as
+     * much as a variable; see `Internal\ReceiverType`.
      *
      * @return list<Union|null>|null
      */
     private static function parameterTypesOf(MethodCall $call, AfterExpressionAnalysisEvent $event): ?array
     {
-        $context = $event->getContext();
+        if (!$call->name instanceof Identifier) {
+            return null;
+        }
+
         $codebase = $event->getCodebase();
+        $classes = ReceiverType::classesOf(
+            $call->var,
+            $event->getStatementsSource()->getNodeTypeProvider(),
+            $event->getContext(),
+        );
 
-        if (!$call->var instanceof Expr\Variable || !\is_string($call->var->name)) {
-            return null;
-        }
-
-        $type = $context->vars_in_scope['$' . $call->var->name] ?? null;
-
-        if ($type === null || !$call->name instanceof Identifier) {
-            return null;
-        }
-
-        foreach ($type->getAtomicTypes() as $atomic) {
-            if (!$atomic instanceof TNamedObject) {
-                continue;
-            }
-
-            $parameters = self::parametersOf($codebase, $atomic->value, $call->name->toString());
+        foreach ($classes as $class) {
+            $parameters = self::parametersOf($codebase, $class, $call->name->toString());
 
             if ($parameters !== null) {
                 return $parameters;
@@ -322,36 +418,6 @@ final class SpecificationRules implements AfterExpressionAnalysisInterface
         }
 
         return $expression->name->toString();
-    }
-
-    /**
-     * @param list<Arg> $arguments
-     *
-     * @return array<string, int|bool|null>
-     */
-    private static function namedLiterals(array $arguments): array
-    {
-        $literals = [];
-
-        foreach ($arguments as $argument) {
-            if (!$argument->name instanceof Identifier) {
-                continue;
-            }
-
-            $value = $argument->value;
-            $literals[$argument->name->toString()] = match (true) {
-                $value instanceof Int_ => $value->value,
-                $value instanceof \PhpParser\Node\Expr\ConstFetch
-                    => match (strtolower($value->name->toString())) {
-                        'true' => true,
-                        'false' => false,
-                        default => null,
-                    },
-                default => null,
-            };
-        }
-
-        return $literals;
     }
 
     /**
@@ -418,17 +484,15 @@ final class SpecificationRules implements AfterExpressionAnalysisInterface
         return $value instanceof Int_ ? $value->value : null;
     }
 
-    private static function verbOf(FuncCall|StaticCall $call): string
+    /**
+     * The verb as written — the resolver is not asked, because only the last
+     * segment is read and an alias of the function is still that function.
+     */
+    private static function writtenName(FuncCall|StaticCall $call): string
     {
-        $name = $call instanceof FuncCall
+        return $call instanceof FuncCall
             ? ($call->name instanceof Name ? $call->name->toString() : '')
             : ($call->name instanceof Identifier ? $call->name->toString() : '');
-
-        $lower = strtolower($name);
-
-        $separator = strrpos($lower, '\\');
-
-        return $separator === false ? $lower : substr($lower, $separator + 1);
     }
 
     private static function report(string $problem, Expr $at, StatementsSource $source): void

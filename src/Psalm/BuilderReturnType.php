@@ -46,6 +46,7 @@ final class BuilderReturnType implements FunctionReturnTypeProviderInterface
             $builder,
             $event->getContext(),
             $event->getStatementsSource()->getCodebase(),
+            $event->getStatementsSource()->getNodeTypeProvider(),
         );
     }
 }

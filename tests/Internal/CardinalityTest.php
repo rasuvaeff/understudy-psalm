@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Rasuvaeff\Understudy\Psalm\Tests\Internal;
 
+use PhpParser\Node\Expr\FuncCall;
 use Rasuvaeff\Understudy\Psalm\Internal\Cardinality;
+use Rasuvaeff\Understudy\Psalm\Tests\Support\Parse;
 use Testo\Assert;
 use Testo\Codecov\Covers;
 use Testo\Data\DataProvider;
@@ -114,5 +116,28 @@ final class CardinalityTest
         yield 'negative minimum' => [-1, null, 'a call cannot happen -1 times: the minimum is negative.'];
         yield 'negative maximum' => [null, -2, 'a call cannot happen -2 times: the maximum is negative.'];
         yield 'swapped bounds' => [5, 2, 'no run satisfies at least 5 calls and at most 2. Did the bounds get swapped?'];
+    }
+
+    #[DataProvider('namedLiteralsProvider')]
+    public function readsTheNamedLiterals(string $code, array $expected): void
+    {
+        $call = Parse::expression($code);
+
+        Assert::instanceOf($call, FuncCall::class);
+        Assert::same(Cardinality::namedLiterals(array_values($call->getArgs())), $expected);
+    }
+
+    public static function namedLiteralsProvider(): iterable
+    {
+        yield 'an integer' => ['verify($c, times: 2);', ['times' => 2]];
+        yield 'true' => ['verify($c, never: true);', ['never' => true]];
+        yield 'false, in any case' => ['verify($c, never: FALSE);', ['never' => false]];
+        yield 'another constant' => ['verify($c, times: PHP_INT_MAX);', ['times' => null]];
+        yield 'a variable' => ['verify($c, minimum: $n);', ['minimum' => null]];
+        yield 'positional arguments are not read' => ['verify($c, 2);', []];
+        yield 'several' => [
+            'verify($c, minimum: 1, maximum: 3);',
+            ['minimum' => 1, 'maximum' => 3],
+        ];
     }
 }

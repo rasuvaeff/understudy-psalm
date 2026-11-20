@@ -139,4 +139,15 @@ final class Wrong
         expect(static fn(): bool => $gate->open(4))->ordered()->times(5, 2);
         expect(static fn(): bool => $gate->open(5))->returns(true)->ordered()->times(5, 2);
     }
+
+    /**
+     * A first-class callable is a closure the body never calls: the engine
+     * sees no call on the double and refuses the specification.
+     */
+    public function aFirstClassCallableInsteadOfACall(): void
+    {
+        $gate = Understudy::for(Gate::class);
+
+        when(static fn(): \Closure => $gate->open(...));
+    }
 }

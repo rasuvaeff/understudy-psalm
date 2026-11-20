@@ -156,10 +156,11 @@ final class MatcherSuppressionIntegrationTest
     {
         $report = $this->runPsalm('psalm.xml', 'Misuse');
 
-        // Sixteen mistakes, sixteen reports, all of them ours. The last five
-        // are impossible bounds written past the first link of the chain,
-        // which the rule used to walk straight past.
-        Assert::same($this->countIn($report, 'Wrong.php'), 16);
+        // Seventeen mistakes, seventeen reports, all of them ours. Five are
+        // impossible bounds written past the first link of the chain, which
+        // the rule used to walk straight past; the last is a first-class
+        // callable, which used to crash the whole run instead.
+        Assert::same($this->countIn($report, 'Wrong.php'), 17);
         Assert::same(
             array_values(array_unique(array_map(
                 static fn(array $issue): string => $issue['type'],
@@ -215,7 +216,10 @@ final class MatcherSuppressionIntegrationTest
         // wrong-callback-return case as InvalidScalarArgument; Psalm 6
         // (which Prefer lowest installs, from 6.19) called it
         // InvalidArgument. Either way, nothing outside that pair may appear.
-        Assert::same($this->countIn($report, 'Wrong.php'), 5);
+        // Seven: the last two are a non-numeric string on `: int` and `true`
+        // on `: false` — definite mismatches the template parameter already
+        // carries, so no rule of ours repeats them.
+        Assert::same($this->countIn($report, 'Wrong.php'), 7);
         Assert::same(
             array_values(array_filter(
                 array_unique(array_map(
@@ -229,6 +233,49 @@ final class MatcherSuppressionIntegrationTest
 
         // Answers that fit, and the shapes the provider declines to judge.
         Assert::same($this->countIn($report, 'Right.php'), 0);
+    }
+
+    /**
+     * Matchers that name what they match — in their own name (`which`,
+     * `containing`, `count`) or in their argument (`instanceOf(Foo::class)`,
+     * a `Captor<Foo>`) — against a parameter no such value can reach.
+     *
+     * The control group is the point: an interface on either side, a
+     * subclass, a class not written out, an object against `count()` — each
+     * a maybe, and each silent. The nearest correct neighbour of every
+     * mistake sits in `Right.php`.
+     */
+    public function aMatcherOfTheWrongShapeIsReported(): void
+    {
+        $report = $this->runPsalm('psalm.xml', 'Kinds');
+
+        Assert::same($this->typesIn($report, 'Wrong.php'), array_fill(0, 8, 'UnderstudyMisuse'));
+        Assert::same($this->countIn($report, 'Right.php'), 0);
+    }
+
+    /**
+     * Doubles the way tests hold them: in a field set up once, and combined
+     * from two contracts by `Understudy::for(A::class, B::class)`.
+     *
+     * Without the plugin a field's specification is never checked and the
+     * second contract's methods do not exist; with it, both are read and
+     * both are typed. The control run is what tells the two apart.
+     */
+    public function aDoubleIsReadThroughAFieldAndAsBothItsContracts(): void
+    {
+        $report = $this->runPsalm('psalm.xml', 'Targets');
+
+        Assert::same(
+            $this->typesIn($report, 'Wrong.php'),
+            ['UnderstudyMisuse', 'InvalidArgument', 'UnderstudyMisuse', 'InvalidArgument'],
+        );
+        Assert::same($this->countIn($report, 'Right.php'), 0);
+
+        $control = $this->runPsalm('psalm-without-plugin.xml', 'Targets');
+
+        Assert::true(\in_array('UndefinedInterfaceMethod', $this->typesIn($control, 'Right.php'), strict: true));
+        Assert::false(\in_array('UnderstudyMisuse', $this->typesIn($control, 'Wrong.php'), strict: true));
+        Assert::false(\in_array('InvalidArgument', $this->typesIn($control, 'Wrong.php'), strict: true));
     }
 
     public function theWireShapeIsReadFromTheConstructor(): void

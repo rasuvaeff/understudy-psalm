@@ -41,31 +41,63 @@ use Psalm\Type\Union;
 final class MatcherKind
 {
     /**
-     * Matchers that assert a scalar kind, and the atomic types an argument of
-     * that kind could have.
+     * Matchers whose name alone says what they can match, and the atomic
+     * types an argument they match could have.
      *
-     * `same`, `not`, `containing`, `count`, `which`, `instanceOf`,
-     * `satisfies`, `any`, `none` and `remaining` are absent on purpose:
-     * their argument decides what they match, so the kind is not knowable
-     * from the matcher name alone.
+     * `same`, `not`, `satisfies`, `any`, `none` and `remaining` are absent on
+     * purpose: their argument decides what they match, so the kind is not
+     * knowable from the matcher name alone. `instanceOf` and a captor's
+     * `capture()` name their class in an argument, and are judged by
+     * {@see instanceProblem()} instead.
      *
      * `int` carries `TFloat` beside it because PHP widens an int wherever a
      * float is declared, and the engine follows that. `string` carries
      * `TCallable` because a callable is spelled as a string often enough that
      * "no string can be one" would be a false accusation.
      *
+     * `containing` matches arrays and nothing else — the engine asks
+     * `is_array()` — so an iterable or a callable, which may be an array, is
+     * the only company it keeps. `count` matches an array or a `Countable`,
+     * and every object is a maybe: whether a class implements `Countable` is
+     * not a question this table asks. `which` matches an object, which a
+     * callable or an iterable may be.
+     *
      * Held as plain `class-string` rather than `class-string<Atomic>`:
      * parameterised, Psalm reads `$atomic instanceof $class` as always
      * true — every listed class IS an `Atomic`, so it cannot see that a
      * given atomic may not be that one.
      *
-     * @var array<string, non-empty-list<class-string>>
+     * @var array<string, array{non-empty-string, non-empty-list<class-string>}>
      */
     private const array KINDS = [
-        'int' => [Atomic\TInt::class, Atomic\TFloat::class],
-        'float' => [Atomic\TFloat::class],
-        'string' => [Atomic\TString::class, Atomic\TCallable::class],
-        'bool' => [Atomic\TBool::class],
+        'int' => ['int', [Atomic\TInt::class, Atomic\TFloat::class]],
+        'float' => ['float', [Atomic\TFloat::class]],
+        'string' => ['string', [Atomic\TString::class, Atomic\TCallable::class]],
+        'bool' => ['bool', [Atomic\TBool::class]],
+        'containing' => ['array', [Atomic\TArray::class, Atomic\TKeyedArray::class, Atomic\TIterable::class, Atomic\TCallable::class]],
+        'count' => [
+            'array|Countable',
+            [
+                Atomic\TArray::class,
+                Atomic\TKeyedArray::class,
+                Atomic\TIterable::class,
+                Atomic\TCallable::class,
+                Atomic\TNamedObject::class,
+                Atomic\TObject::class,
+            ],
+        ],
+        'which' => ['object', [Atomic\TNamedObject::class, Atomic\TObject::class, Atomic\TCallable::class, Atomic\TIterable::class]],
+    ];
+
+    /**
+     * The atomic types an object could be an instance of. Everything else
+     * {@see isConcrete()} reads holds no object at all.
+     */
+    private const array OBJECTS = [
+        Atomic\TNamedObject::class,
+        Atomic\TObject::class,
+        Atomic\TCallable::class,
+        Atomic\TIterable::class,
     ];
 
     private function __construct() {}
@@ -77,14 +109,13 @@ final class MatcherKind
      */
     public static function problem(string $matcher, Union $parameterType): ?string
     {
-        $kind = strtolower($matcher);
-        $accepted = self::KINDS[$kind] ?? null;
+        $entry = self::KINDS[strtolower($matcher)] ?? null;
 
-        if ($accepted === null) {
+        if ($entry === null) {
             return null;
         }
 
-        $ids = [];
+        [$kind, $accepted] = $entry;
 
         // Not guarded against an empty union: Psalm declares
         // `getAtomicTypes()` non-empty, and a union of nothing is not a shape
@@ -98,7 +129,67 @@ final class MatcherKind
             if (self::mayHold($accepted, $atomic) !== false) {
                 return null;
             }
+        }
 
+        return self::complaint('`Arg::' . $matcher . '()`', $kind, $parameterType);
+    }
+
+    /**
+     * `Arg::instanceOf(Foo::class)`, or a `capture()` on a `Captor<Foo>`:
+     * a matcher that holds only instances of one class.
+     *
+     * A parameter that can hold no object at all is a definite no. So is a
+     * parameter of another CLASS, when neither of the two extends the other:
+     * no object is an instance of two unrelated classes, and that stays true
+     * of a double too — `Understudy::for()` can combine a class with
+     * interfaces, never with a second class.
+     *
+     * An interface on either side is a maybe, final or not. A double of a
+     * final class implementing an interface the class does not is exactly
+     * what `Understudy::for(Final::class, Contract::class)` builds, so the
+     * finality a type checker would rightly lean on proves nothing here.
+     *
+     * @param non-empty-string                 $matcher   the matcher as written, for the message
+     * @param non-empty-string                 $class     the class the matcher holds instances of
+     * @param \Closure(string, string): bool   $unrelated whether two names are classes, neither
+     *                                                    extending the other
+     */
+    public static function instanceProblem(
+        string $matcher,
+        string $class,
+        Union $parameterType,
+        \Closure $unrelated,
+    ): ?string {
+        foreach ($parameterType->getAtomicTypes() as $atomic) {
+            if (self::mayHoldInstance($class, $atomic, $unrelated)) {
+                return null;
+            }
+        }
+
+        return self::complaint($matcher, $class, $parameterType);
+    }
+
+    /**
+     * @param \Closure(string, string): bool $unrelated
+     */
+    private static function mayHoldInstance(string $class, Atomic $atomic, \Closure $unrelated): bool
+    {
+        if ($atomic instanceof TNamedObject) {
+            return $atomic->extra_types !== [] || !$unrelated($class, $atomic->value);
+        }
+
+        return self::mayHold(self::OBJECTS, $atomic) !== false;
+    }
+
+    /**
+     * @param non-empty-string $matcher
+     * @param non-empty-string $kind
+     */
+    private static function complaint(string $matcher, string $kind, Union $parameterType): string
+    {
+        $ids = [];
+
+        foreach ($parameterType->getAtomicTypes() as $atomic) {
             $ids[] = $atomic->getId();
         }
 
@@ -106,8 +197,8 @@ final class MatcherKind
             // "a value of type int", not "a int": the kind is a type name, and
             // an article picked for it in advance is wrong half the time. The
             // PHPStan plugin words the same sentence this way already.
-            '`Arg::%s()` matches a value of type %s, and this parameter accepts %s. '
-            . 'No argument can satisfy both, so the expectation can never match.',
+            '%s matches a value of type %s, and this parameter accepts %s. '
+            . 'No argument can satisfy both, so the specification can never match.',
             $matcher,
             $kind,
             implode('|', $ids),
@@ -118,7 +209,7 @@ final class MatcherKind
      * True — a value of this kind fits. False — none ever could. Null — the
      * atomic is not one this plugin reads, so it has no opinion.
      *
-     * @param non-empty-list<class-string> $accepted
+     * @param list<class-string> $accepted
      */
     private static function mayHold(array $accepted, Atomic $atomic): ?bool
     {
