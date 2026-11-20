@@ -68,3 +68,22 @@ final readonly class Fanout
         return $this->clock->now() + count($this->auditors);
     }
 }
+
+/**
+ * Nothing but a variadic tail: `wire()` hands back no double at all.
+ */
+final readonly class Gathering
+{
+    /** @var list<Auditor> */
+    private array $auditors;
+
+    public function __construct(Auditor ...$auditors)
+    {
+        $this->auditors = array_values($auditors);
+    }
+
+    public function count(): int
+    {
+        return count($this->auditors);
+    }
+}

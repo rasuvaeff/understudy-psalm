@@ -64,24 +64,24 @@ final class WireShape
 
         $overrides = self::overrides($arguments, $types);
         $doubles = [];
-        $overridden = false;
+        $known = false;
 
         foreach ($codebase->getMethodParams($constructor) as $parameter) {
-            $type = $parameter->type;
+            if (isset($overrides['definite'][$parameter->name]) || $parameter->is_variadic) {
+                // The test handed the value in, and `Wire` takes it before
+                // looking at the type: no double, and no refusal of a union
+                // either. A variadic tail is never doubled — it is optional
+                // by definition, and inventing entries for it would invent
+                // collaborators. Either way there is never a key, and that is
+                // worth an exact shape even when nothing else is doubled.
+                $known = true;
 
-            if ($type === null || $parameter->is_variadic) {
-                // `Wire` stops at a variadic tail: it is optional by
-                // definition, and inventing entries for it would invent
-                // collaborators. There is never a key for it.
                 continue;
             }
 
-            if (isset($overrides['definite'][$parameter->name])) {
-                // The test handed the value in, and `Wire` takes it before
-                // looking at the type: no double, and no refusal of a union
-                // either.
-                $overridden = true;
+            $type = $parameter->type;
 
+            if ($type === null) {
                 continue;
             }
 
@@ -128,7 +128,7 @@ final class WireShape
             $doubles[$name] = $key;
         }
 
-        if ($doubles === [] && !$overridden) {
+        if ($doubles === [] && !$known) {
             return null;
         }
 

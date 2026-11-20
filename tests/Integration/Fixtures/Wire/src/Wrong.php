@@ -76,4 +76,15 @@ final class Wrong
 
         $wired['doubles']['auditors']->audit();
     }
+
+    /**
+     * With nothing doubled the shape still says so, rather than falling back
+     * to the core's `array<string, object>`, where any key passes.
+     */
+    public function aVariadicOnlyConstructorHasNoDoubles(): void
+    {
+        $wired = Understudy::wire(Gathering::class);
+
+        $wired['doubles']['auditors']->audit();
+    }
 }

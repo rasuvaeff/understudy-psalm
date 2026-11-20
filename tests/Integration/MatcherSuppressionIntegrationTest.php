@@ -304,6 +304,13 @@ final class MatcherSuppressionIntegrationTest
         // A literal override, and a variadic tail: the key does not exist.
         Assert::same($missing($report, 'InvalidArrayOffset', "'clock', expecting 'books'"), 1);
         Assert::same($missing($report, 'InvalidArrayOffset', "'auditors', expecting 'clock'"), 1);
+        // Nothing but a variadic tail: an exact empty shape, not the core's
+        // `array<string, object>` where any key passes.
+        Assert::same(count(array_filter(
+            $report,
+            static fn(array $issue): bool => $issue['type'] === 'EmptyArrayAccess'
+                && str_contains($issue['message'], "\$wired['doubles']"),
+        )), 1);
         // Overrides whose keys are unknown, and a final class with a default:
         // the key may be missing.
         Assert::same($missing($report, 'PossiblyUndefinedArrayOffset', "['books']"), 1);
