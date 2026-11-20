@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 1.1.1 — 2026-11-20
+
+- **Fixed.** The `wire()` shape no longer types keys the core never puts in
+  `doubles` (#60). A parameter passed through `$overrides` has no key (its
+  literal keys are read from the argument's type), overrides whose keys are not
+  known make every key possibly undefined, a variadic tail has no key, and a
+  class parameter with a default is possibly undefined, because the core keeps
+  the default when the class cannot be doubled. `$wired['doubles']['clock']`
+  after `wire(Foo::class, ['clock' => $x])` is now `InvalidArrayOffset`
+  instead of passing analysis and failing at runtime. An overridden parameter
+  whose type is a union of two classes no longer drops the whole shape: the
+  core takes the override before it reads the type.
+
 ## 1.1.0 — 2026-11-06
 
 - Support Psalm 7: `TKeyedArray`'s constructor is private there, so shapes are
