@@ -5,6 +5,45 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 1.2.0 — 2026-11-20
+
+- **Added.** `Understudy::for(A::class, B::class)` is typed `A&B` when every
+  argument is a written-out `::class` and every one after the first an
+  interface (#62). The methods of `B` exist on the double, and a
+  specification of one of them gets its builder type and matcher checks like
+  any other.
+- **Added.** Matcher kinds beyond the four scalars (#63): `Arg::containing()`
+  against a parameter that cannot be an array, `Arg::count()` against one
+  that holds neither an array nor an object, `Arg::which()` against one that
+  holds no object, and `Arg::instanceOf(Foo::class)` (written out) and a
+  `Captor<Foo>`'s `capture()` against a parameter that holds no object or
+  only objects of a class unrelated to `Foo`. Reported as `UnderstudyMisuse`,
+  under the same "only a definite no" rule; an interface on either side is
+  never judged, because a double of a final class can implement it. The
+  `returns()` half of #63 needs no rule: `returns('abc')` on `: int` and
+  `returns(true)` on `: false` are already Psalm's own `InvalidArgument`
+  through the builder's template parameter, and are now pinned by fixtures.
+- **Added.** The receiver of a specified call is read from Psalm's node types,
+  so a double held in a field (`$this->repository`) or reached through a
+  getter gets its builder type and matcher checks, not only a local variable
+  (#61). The variables in scope remain the fallback.
+- **Fixed.** `when(fn () => $double->method(...))` — a first-class callable
+  in a specification closure — crashed the Psalm run on an assertion inside
+  php-parser. It is now reported as a closure that makes no call, which is
+  what the engine says at runtime.
+- **Changed.** The matcher complaint ends "so the specification can never
+  match", the wording of the PHPStan extension (#64). Wording is not part of
+  the contract; the issue type is.
+- **Internal.** One single-call extractor, `ClosureShape::singleCall()`, with
+  exactly-one-statement semantics, replaces three that disagreed (#65). The
+  analyser-independent code (`Cardinality`, `ClosureShape`, `VerbNames`) is
+  token-identical to the PHPStan extension's copy and guarded by a
+  fingerprint test present in both repositories (#64).
+- `UnderstudyMisuse` stays one issue type: subclasses are not caught by an
+  existing `UnderstudyMisuse` handler or `@psalm-suppress` on Psalm 6.19 or
+  7.12, so splitting it would break every project that silences it (#66,
+  closed as not planned).
+
 ## 1.1.1 — 2026-11-20
 
 - **Fixed.** The `wire()` shape no longer types keys the core never puts in

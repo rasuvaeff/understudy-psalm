@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Rasuvaeff\Understudy\Psalm\Tests\Internal;
 
 use PhpParser\Node\Expr\FuncCall;
+use PhpParser\Node\Identifier;
 use Rasuvaeff\Understudy\Psalm\Internal\ClosureShape;
 use Rasuvaeff\Understudy\Psalm\Tests\Support\Parse;
 use Testo\Assert;
@@ -115,6 +116,20 @@ final class ClosureShapeTest
         yield 'a variable instead of a closure' => ['when($specification);', null];
         yield 'a first-class callable' => ['when($double->find(...));', null];
 
+        // Inside a closure, a first-class callable is a closure the body
+        // never calls: the engine sees no call on a double and refuses the
+        // specification. Its arguments cannot even be read — `getArgs()`
+        // throws on one — which is how `$captor->capture(...)` used to crash
+        // the PHPStan copy of this walk.
+        yield 'a first-class callable inside the closure' => [
+            'when(fn () => $double->find(...));',
+            'nothing to specify',
+        ];
+        yield 'a first-class capture inside the closure' => [
+            'when(fn () => $double->find($captor->capture(...)));',
+            null,
+        ];
+
         // Only one of the calls written below can reach a double: the engine
         // throws on the first one that does and never runs what follows, and a
         // call on `$this` is the test class's own helper. Counting them all
@@ -145,5 +160,43 @@ final class ClosureShapeTest
             'when(fn () => $d->head()->tail() && $b->find(1));',
             'makes 2 calls',
         ];
+    }
+
+    #[DataProvider('singleCallProvider')]
+    public function findsTheOneCallAClosureIs(string $code, ?string $expectedMethod): void
+    {
+        $call = Parse::expression($code);
+
+        Assert::instanceOf($call, FuncCall::class);
+
+        $single = ClosureShape::singleCall($call->getArgs()[0]->value);
+
+        Assert::same($single?->name instanceof Identifier ? $single->name->toString() : null, $expectedMethod);
+    }
+
+    public static function singleCallProvider(): iterable
+    {
+        yield 'an arrow function' => ['when(fn () => $double->find(1));', 'find'];
+        yield 'a bare statement' => ['when(function () use ($double) { $double->find(1); });', 'find'];
+        yield 'a returned call' => ['when(function () use ($double) { return $double->find(1); });', 'find'];
+
+        // Exactly one statement. The first of several is not the
+        // specification's call by any rule the engine follows, and reading
+        // it gave the matcher check and the builder type two different
+        // answers about one closure.
+        yield 'the first of two statements' => [
+            'when(function () use ($double) { $double->find(1); $double->find(2); });',
+            null,
+        ];
+        yield 'no statement' => ['when(function () {});', null];
+        yield 'a statement that is not an expression' => [
+            'when(function () use ($double) { if (true) { $double->find(1); } });',
+            null,
+        ];
+        yield 'an empty return' => ['when(function () { return; });', null];
+        yield 'not a method call' => ['when(fn () => find(1));', null];
+        yield 'a static call' => ['when(fn () => Gate::find(1));', null];
+        yield 'a first-class callable' => ['when(fn () => $double->find(...));', null];
+        yield 'not a closure literal' => ['when($specification);', null];
     }
 }

@@ -11,6 +11,8 @@ use PhpParser\Node\Expr\MethodCall;
 use PhpParser\Node\Expr\NullsafeMethodCall;
 use PhpParser\Node\Expr\StaticCall;
 use PhpParser\Node\Expr\Variable;
+use PhpParser\Node\Stmt\Expression;
+use PhpParser\Node\Stmt\Return_;
 use PhpParser\NodeTraverser;
 use PhpParser\NodeVisitor;
 use PhpParser\NodeVisitorAbstract;
@@ -152,6 +154,35 @@ final class ClosureShape
         }
 
         return new self(count($visitor->calls), $visitor->staticCalls, $candidates);
+    }
+
+    /**
+     * The one call a specification closure is, when that is all it is: an
+     * arrow function whose expression is a method call, or a closure whose
+     * single statement is one — bare or returned.
+     *
+     * Not a first-class callable: `fn () => $d->m(...)` hands back a
+     * closure and calls nothing.
+     *
+     * Exactly one statement, not the first of several. A closure that does
+     * anything besides the call is not a shape either analyser resolves a
+     * method from, and every caller — the builder's return type, the matcher
+     * kinds — reads null as "stay quiet".
+     */
+    public static function singleCall(Node $closure): ?MethodCall
+    {
+        $body = match (true) {
+            $closure instanceof ArrowFunction => $closure->expr,
+            $closure instanceof Closure && \count($closure->stmts) === 1 => match (true) {
+                $closure->stmts[0] instanceof Expression => $closure->stmts[0]->expr,
+                $closure->stmts[0] instanceof Return_ => $closure->stmts[0]->expr,
+                default => null,
+            },
+            default => null,
+        };
+
+        // `$d->m(...)` makes no call, and reading its arguments throws.
+        return $body instanceof MethodCall && !$body->isFirstClassCallable() ? $body : null;
     }
 
     /**

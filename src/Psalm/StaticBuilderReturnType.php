@@ -8,6 +8,7 @@ use Psalm\Plugin\EventHandler\Event\MethodReturnTypeProviderEvent;
 use Psalm\Plugin\EventHandler\MethodReturnTypeProviderInterface;
 use Psalm\Type\Union;
 use Rasuvaeff\Understudy\Psalm\Internal\BuilderType;
+use Rasuvaeff\Understudy\Psalm\Internal\DoubleType;
 use Rasuvaeff\Understudy\Psalm\Internal\WireShape;
 
 /**
@@ -16,7 +17,8 @@ use Rasuvaeff\Understudy\Psalm\Internal\WireShape;
  * `when()` and `expect()` in their collision-free static form, which Pest
  * users are told to reach for because Pest owns the global `expect()` — a
  * rule that only knew the free functions would be silent exactly for them.
- * And `wire()`, whose shape is readable from the named class's constructor.
+ * And `wire()`, whose shape is readable from the named class's constructor,
+ * and `for()` with more than one contract, which is a double of all of them.
  *
  * @internal
  */
@@ -39,6 +41,10 @@ final class StaticBuilderReturnType implements MethodReturnTypeProviderInterface
         $method = $event->getMethodNameLowercase();
         $arguments = $event->getCallArgs();
 
+        if ($method === 'for') {
+            return DoubleType::of($arguments, $event->getSource()->getCodebase());
+        }
+
         if ($method === 'wire') {
             return WireShape::of(
                 $arguments,
@@ -58,6 +64,7 @@ final class StaticBuilderReturnType implements MethodReturnTypeProviderInterface
             $builder,
             $event->getContext(),
             $event->getSource()->getCodebase(),
+            $event->getSource()->getNodeTypeProvider(),
         );
     }
 }

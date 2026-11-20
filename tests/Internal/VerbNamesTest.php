@@ -87,6 +87,19 @@ final class VerbNamesTest
         yield 'a namesake class elsewhere' => ['App\Understudy', 'when', false];
     }
 
+    #[DataProvider('shortVerbProvider')]
+    public function readsTheVerbWithoutItsNamespace(string $name, string $expected): void
+    {
+        Assert::same(VerbNames::shortVerb($name), $expected);
+    }
+
+    public static function shortVerbProvider(): iterable
+    {
+        yield 'imported' => ['when', 'when'];
+        yield 'fully qualified' => ['Rasuvaeff\Understudy\verify', 'verify'];
+        yield 'case is not meaningful in PHP' => ['Rasuvaeff\Understudy\Expect', 'expect'];
+    }
+
     /**
      * Every closure-taking verb the core publishes is known here.
      *
