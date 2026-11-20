@@ -9,7 +9,10 @@ use PhpParser\Node\Expr\ClassConstFetch;
 use PhpParser\Node\Name;
 use PhpParser\Node\Scalar\String_;
 use Psalm\Codebase;
+use Psalm\NodeTypeProvider;
+use Psalm\Type;
 use Psalm\Type\Atomic;
+use Psalm\Type\Atomic\TArray;
 use Psalm\Type\Atomic\TKeyedArray;
 use Psalm\Type\Atomic\TNamedObject;
 use Psalm\Type\Union;
@@ -27,6 +30,13 @@ use Psalm\Type\Union;
  * A dynamic class-string is left alone: the core's declaration is then the
  * honest answer, and guessing would be worse than saying less.
  *
+ * A key is in the shape only where the core puts one in `doubles`, which
+ * `Wire` decides per parameter: a parameter named in `$overrides` takes the
+ * given value and has no double, a variadic tail is never doubled, and a
+ * parameter whose type cannot be doubled keeps its own default instead. The
+ * first is read from the overrides argument; the other two from the
+ * constructor.
+ *
  * @internal
  */
 final class WireShape
@@ -36,7 +46,7 @@ final class WireShape
     /**
      * @param list<Arg> $arguments
      */
-    public static function of(array $arguments, Codebase $codebase): ?Union
+    public static function of(array $arguments, Codebase $codebase, NodeTypeProvider $types): ?Union
     {
         $class = self::namedClass($arguments[0]->value ?? null);
 
@@ -52,9 +62,23 @@ final class WireShape
             return null;
         }
 
+        $overrides = self::overrides($arguments, $types);
         $doubles = [];
+        $known = false;
 
         foreach ($codebase->getMethodParams($constructor) as $parameter) {
+            if (isset($overrides['definite'][$parameter->name]) || $parameter->is_variadic) {
+                // The test handed the value in, and `Wire` takes it before
+                // looking at the type: no double, and no refusal of a union
+                // either. A variadic tail is never doubled — it is optional
+                // by definition, and inventing entries for it would invent
+                // collaborators. Either way there is never a key, and that is
+                // worth an exact shape even when nothing else is doubled.
+                $known = true;
+
+                continue;
+            }
+
             $type = $parameter->type;
 
             if ($type === null) {
@@ -88,16 +112,136 @@ final class WireShape
             // for.
             $atomic = $named[0] ?? null;
 
-            if ($atomic instanceof TNamedObject) {
-                $doubles[$parameter->name] = new Union([$atomic]);
+            if (!$atomic instanceof TNamedObject) {
+                continue;
             }
+
+            $name = $parameter->name;
+            $key = new Union([$atomic]);
+
+            if ($overrides['open'] || isset($overrides['possible'][$name])
+                || ($parameter->is_optional && !self::isInterface($atomic, $codebase))
+            ) {
+                $key = $key->setPossiblyUndefined(possibly_undefined: true);
+            }
+
+            $doubles[$name] = $key;
         }
 
-        if ($doubles === []) {
+        if ($doubles === [] && !$known) {
             return null;
         }
 
-        return self::shape($class, new Union([TKeyedArray::make($doubles)]));
+        return self::shape(
+            $class,
+            $doubles === [] ? Type::getEmptyArray() : new Union([TKeyedArray::make($doubles)]),
+        );
+    }
+
+    /**
+     * Whether every contract the parameter names is an interface.
+     *
+     * A class parameter with a default is answered by that default whenever
+     * the class cannot be doubled — final unless `bypassFinals()` was called,
+     * an enum, an internal class — and which of those holds is a runtime fact,
+     * so its key may be missing. An interface is doubled whenever it is
+     * reached; the residual is one that extends `Throwable` or declares a
+     * constructor, which the core refuses too.
+     */
+    private static function isInterface(TNamedObject $atomic, Codebase $codebase): bool
+    {
+        if (!$codebase->interfaceExists($atomic->value)) {
+            return false;
+        }
+
+        foreach ($atomic->extra_types as $extra) {
+            if (!$extra instanceof TNamedObject || !$codebase->interfaceExists($extra->value)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * The constructor parameters the overrides argument names.
+     *
+     * `definite` keys are always passed, so the core never doubles them;
+     * `possible` keys may be; `open` means any key may be, because the
+     * argument is not an array whose keys are known.
+     *
+     * @param list<Arg> $arguments
+     *
+     * @return array{definite: array<string, true>, possible: array<string, true>, open: bool}
+     */
+    private static function overrides(array $arguments, NodeTypeProvider $types): array
+    {
+        $none = ['definite' => [], 'possible' => [], 'open' => false];
+        $open = ['definite' => [], 'possible' => [], 'open' => true];
+        $argument = null;
+
+        foreach ($arguments as $position => $candidate) {
+            if ($candidate->unpack) {
+                return $open;
+            }
+
+            $name = $candidate->name?->toString();
+
+            if ($name === 'overrides' || $name === null && $position === 1) {
+                $argument = $candidate;
+            }
+        }
+
+        if (!$argument instanceof Arg) {
+            return $none;
+        }
+
+        $type = $types->getType($argument->value);
+
+        if (!$type instanceof Union) {
+            return $open;
+        }
+
+        /** @var array<string, true>|null $definite */
+        $definite = null;
+        $possible = [];
+
+        foreach ($type->getAtomicTypes() as $atomic) {
+            if ($atomic instanceof TArray && $atomic->isEmptyArray()) {
+                $definite = [];
+
+                continue;
+            }
+
+            if (!$atomic instanceof TKeyedArray || $atomic->fallback_params !== null) {
+                return $open;
+            }
+
+            $always = [];
+
+            foreach ($atomic->properties as $key => $value) {
+                $key = (string) $key;
+                $possible[$key] = true;
+
+                if (!$value->possibly_undefined) {
+                    $always[$key] = true;
+                }
+            }
+
+            if ($definite === null) {
+                $definite = $always;
+
+                continue;
+            }
+
+            foreach (array_keys($definite) as $key) {
+                if (!isset($always[$key])) {
+                    unset($definite[$key]);
+                }
+            }
+        }
+
+        return ['definite' => $definite ?? [], 'possible' => $possible, 'open' => false];
     }
 
     private static function shape(string $class, Union $doubles): Union

@@ -280,6 +280,57 @@ final class MatcherSuppressionIntegrationTest
     }
 
     /**
+     * A key is in the shape only where the core puts a double: not for a
+     * parameter passed through `$overrides`, not for a variadic tail, and only
+     * possibly for a class parameter with a default, which the core answers
+     * with that default when the class cannot be doubled. Typing every
+     * parameter as a required key let `$wired['doubles']['clock']->now()`
+     * pass analysis and fail on a missing key.
+     *
+     * The control run is what makes the diagnostics the plugin's: without it
+     * every key is a plain `object` and none of them is reported as missing.
+     */
+    public function theWireShapeOmitsKeysTheCoreDoesNotDouble(): void
+    {
+        $missing = static fn(array $report, string $type, string $key): int => count(array_filter(
+            $report,
+            static fn(array $issue): bool => $issue['type'] === $type
+                && str_contains($issue['message'], "\$wired['doubles']")
+                && str_contains($issue['message'], $key),
+        ));
+
+        $report = $this->runPsalm('psalm.xml', 'Wire');
+
+        // A literal override, and a variadic tail: the key does not exist.
+        Assert::same($missing($report, 'InvalidArrayOffset', "'clock', expecting 'books'"), 1);
+        Assert::same($missing($report, 'InvalidArrayOffset', "'auditors', expecting 'clock'"), 1);
+        // Nothing but a variadic tail: an exact empty shape, not the core's
+        // `array<string, object>` where any key passes.
+        Assert::same(count(array_filter(
+            $report,
+            static fn(array $issue): bool => $issue['type'] === 'EmptyArrayAccess'
+                && str_contains($issue['message'], "\$wired['doubles']"),
+        )), 1);
+        // Overrides whose keys are unknown, and a final class with a default:
+        // the key may be missing.
+        Assert::same($missing($report, 'PossiblyUndefinedArrayOffset', "['books']"), 1);
+        Assert::same($missing($report, 'PossiblyUndefinedArrayOffset', "['fallback']"), 1);
+        // What stays doubled stays typed: the rest of an override, an
+        // interface with a default, the parameters before a variadic tail —
+        // and an overridden union is no refusal, because `Wire` takes the
+        // override before it reads the type.
+        Assert::same($this->countIn($report, 'Right.php'), 0);
+
+        $control = $this->runPsalm('psalm-without-plugin.xml', 'Wire');
+
+        Assert::same($missing($control, 'InvalidArrayOffset', "'clock'"), 0);
+        Assert::same($missing($control, 'InvalidArrayOffset', "'auditors'"), 0);
+        Assert::same($missing($control, 'PossiblyUndefinedArrayOffset', "['books']"), 0);
+        Assert::same($missing($control, 'PossiblyUndefinedArrayOffset', "['fallback']"), 0);
+        Assert::true($this->countIn($control, 'Wrong.php') > 0);
+    }
+
+    /**
      * Which `Arg` a rule acts on is decided by the resolver, not by the last
      * segment of the written name. Both directions used to be wrong, and both
      * landed in the consumer's own code.

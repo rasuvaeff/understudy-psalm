@@ -40,7 +40,11 @@ final class StaticBuilderReturnType implements MethodReturnTypeProviderInterface
         $arguments = $event->getCallArgs();
 
         if ($method === 'wire') {
-            return WireShape::of($arguments, $event->getSource()->getCodebase());
+            return WireShape::of(
+                $arguments,
+                $event->getSource()->getCodebase(),
+                $event->getSource()->getNodeTypeProvider(),
+            );
         }
 
         $builder = self::BUILDERS[$method] ?? null;

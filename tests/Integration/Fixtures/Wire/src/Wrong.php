@@ -38,4 +38,53 @@ final class Wrong
 
         $wired['doubles']['either']->now();
     }
+
+    /**
+     * A parameter passed through `$overrides` takes the given value, and the
+     * core builds no double for it.
+     */
+    public function anOverriddenParameterHasNoDouble(Clock $clock): void
+    {
+        $wired = Understudy::wire(Checkout::class, ['clock' => $clock]);
+
+        $wired['doubles']['clock']->now();
+    }
+
+    /**
+     * Keys not known statically may name any parameter, so every key may be
+     * missing.
+     *
+     * @param array<string, mixed> $overrides
+     */
+    public function aNonLiteralOverridesArrayMakesEveryKeyOptional(array $overrides): void
+    {
+        $wired = Understudy::wire(Checkout::class, $overrides);
+
+        $wired['doubles']['books']->find(1);
+    }
+
+    public function aFinalClassWithADefaultMayKeepItsDefault(): void
+    {
+        $wired = Understudy::wire(Stamped::class);
+
+        $wired['doubles']['fallback']->now();
+    }
+
+    public function aVariadicTailIsNeverDoubled(): void
+    {
+        $wired = Understudy::wire(Fanout::class);
+
+        $wired['doubles']['auditors']->audit();
+    }
+
+    /**
+     * With nothing doubled the shape still says so, rather than falling back
+     * to the core's `array<string, object>`, where any key passes.
+     */
+    public function aVariadicOnlyConstructorHasNoDoubles(): void
+    {
+        $wired = Understudy::wire(Gathering::class);
+
+        $wired['doubles']['auditors']->audit();
+    }
 }

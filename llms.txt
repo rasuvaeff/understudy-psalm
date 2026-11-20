@@ -62,7 +62,11 @@ Everything else the plugin registers is `@internal`.
   `returns(TReturn ...)`, so Psalm checks them itself.
 - Psalm's own `InvalidArrayOffset` and method diagnostics on `wire()`, whose
   shape is read from the named class's constructor. An intersection parameter
-  keeps its intersection — the core builds one double for all of it. A union
+  keeps its intersection — the core builds one double for all of it. A key
+  exists only where the core builds a double: none for a parameter passed
+  through `$overrides` or for a variadic tail; a class parameter with a
+  default is possibly undefined (it may keep its default), and overrides
+  with unknown keys make every key possibly undefined. A union
   naming two object types makes the core refuse the class (`CannotWire`), so
   no shape is produced for that call at all. A dynamic class-string is left
   alone.
