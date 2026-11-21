@@ -59,8 +59,8 @@ final class MatcherKind
      * `is_array()` — so an iterable or a callable, which may be an array, is
      * the only company it keeps. `count` matches an array or a `Countable`,
      * and every object is a maybe: whether a class implements `Countable` is
-     * not a question this table asks. `which` matches an object, which a
-     * callable or an iterable may be.
+     * not a question this table asks. `which` and `whichProperty` match an
+     * object, which a callable or an iterable may be.
      *
      * Held as plain `class-string` rather than `class-string<Atomic>`:
      * parameterised, Psalm reads `$atomic instanceof $class` as always
@@ -87,6 +87,10 @@ final class MatcherKind
             ],
         ],
         'which' => ['object', [Atomic\TNamedObject::class, Atomic\TObject::class, Atomic\TCallable::class, Atomic\TIterable::class]],
+        'whichproperty' => [
+            'object',
+            [Atomic\TNamedObject::class, Atomic\TObject::class, Atomic\TCallable::class, Atomic\TIterable::class],
+        ],
     ];
 
     /**

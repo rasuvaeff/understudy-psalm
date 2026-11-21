@@ -24,6 +24,7 @@ use Psalm\NodeTypeProvider;
 use Psalm\Plugin\EventHandler\AfterExpressionAnalysisInterface;
 use Psalm\Plugin\EventHandler\Event\AfterExpressionAnalysisEvent;
 use Psalm\StatementsSource;
+use Psalm\Storage\FunctionLikeParameter;
 use Psalm\Type\Atomic\TGenericObject;
 use Psalm\Type\Atomic\TNamedObject;
 use Psalm\Type\Union;
@@ -32,8 +33,10 @@ use Rasuvaeff\Understudy\Psalm\Internal\ClosureShape;
 use Rasuvaeff\Understudy\Psalm\Internal\MatcherClass;
 use Rasuvaeff\Understudy\Psalm\Internal\MatcherKind;
 use Rasuvaeff\Understudy\Psalm\Internal\ReceiverType;
+use Rasuvaeff\Understudy\Psalm\Internal\RestTail;
 use Rasuvaeff\Understudy\Psalm\Internal\VerbNames;
 use Rasuvaeff\Understudy\Psalm\Issue\UnderstudyMisuse;
+use Rasuvaeff\Understudy\Psalm\Issue\UnderstudyRestSuggestion;
 
 /**
  * Says what the engine would say, before the test runs.
@@ -179,7 +182,8 @@ final class SpecificationRules implements AfterExpressionAnalysisInterface
     }
 
     /**
-     * A matcher whose kind no argument of that parameter could ever have.
+     * A matcher whose kind no argument of that parameter could ever have,
+     * and a tail of `Arg::any()` that `Arg::rest()` would say in one word.
      */
     private static function checkMatchers(
         Expr $closure,
@@ -192,17 +196,19 @@ final class SpecificationRules implements AfterExpressionAnalysisInterface
             return;
         }
 
-        $parameters = self::parameterTypesOf($body, $event);
+        $parameters = self::parametersOfCall($body, $event);
 
         if ($parameters === null) {
             return;
         }
 
+        self::checkRestTail($body, $parameters, $source);
+
         $codebase = $event->getCodebase();
         $types = $source->getNodeTypeProvider();
 
         foreach (array_values($body->getArgs()) as $position => $argument) {
-            $parameter = $parameters[$position] ?? null;
+            $parameter = ($parameters[$position] ?? null)?->type;
 
             if (!$parameter instanceof Union) {
                 continue;
@@ -336,18 +342,59 @@ final class SpecificationRules implements AfterExpressionAnalysisInterface
     }
 
     /**
-     * The declared type of each parameter of the called method, or null when
-     * the target cannot be resolved — a receiver of unknown type, a method
-     * Psalm has no storage for, anything the plugin should stay quiet about.
-     * A parameter with no declared type is a null entry: there is a
-     * parameter at that position, and nothing is known about it.
+     * The suggestion, on the first `Arg::any()` of the run. Reported apart
+     * from `UnderstudyMisuse` and without its "cannot work" preamble, because
+     * nothing here is broken.
+     *
+     * @param list<FunctionLikeParameter> $parameters
+     */
+    private static function checkRestTail(MethodCall $call, array $parameters, StatementsSource $source): void
+    {
+        $required = 0;
+        $variadic = false;
+
+        foreach ($parameters as $parameter) {
+            $required += $parameter->is_optional ? 0 : 1;
+            $variadic = $variadic || $parameter->is_variadic;
+        }
+
+        $arguments = array_values($call->getArgs());
+        $tail = RestTail::of(
+            $arguments,
+            static fn(Expr $value): ?string => self::matcherName($value),
+            $required,
+            count($parameters),
+            $variadic,
+        );
+
+        if ($tail === null) {
+            return;
+        }
+
+        [$start, $length] = $tail;
+
+        IssueBuffer::maybeAdd(
+            new UnderstudyRestSuggestion(
+                RestTail::message($length),
+                new CodeLocation($source, $arguments[$start]->value),
+            ),
+            $source->getSuppressedIssues(),
+        );
+    }
+
+    /**
+     * The parameters of the called method, or null when the target cannot be
+     * resolved — a receiver of unknown type, a method Psalm has no storage
+     * for, anything the plugin should stay quiet about. A parameter with no
+     * declared type has a null `type`: there is a parameter at that position,
+     * and nothing is known about it.
      *
      * The receiver is any expression Psalm typed — `$this->repository` as
      * much as a variable; see `Internal\ReceiverType`.
      *
-     * @return list<Union|null>|null
+     * @return list<FunctionLikeParameter>|null
      */
-    private static function parameterTypesOf(MethodCall $call, AfterExpressionAnalysisEvent $event): ?array
+    private static function parametersOfCall(MethodCall $call, AfterExpressionAnalysisEvent $event): ?array
     {
         if (!$call->name instanceof Identifier) {
             return null;
@@ -378,7 +425,7 @@ final class SpecificationRules implements AfterExpressionAnalysisInterface
      * them is one Psalm release away from breaking. `Codebase` takes a plain
      * `Class::method` string for both.
      *
-     * @return list<Union|null>|null
+     * @return list<FunctionLikeParameter>|null
      */
     private static function parametersOf(Codebase $codebase, string $class, string $method): ?array
     {
@@ -388,13 +435,7 @@ final class SpecificationRules implements AfterExpressionAnalysisInterface
             return null;
         }
 
-        $parameters = [];
-
-        foreach ($codebase->getMethodParams($identifier) as $parameter) {
-            $parameters[] = $parameter->type;
-        }
-
-        return $parameters;
+        return array_values($codebase->getMethodParams($identifier));
     }
 
     /**

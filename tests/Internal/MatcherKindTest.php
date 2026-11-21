@@ -200,6 +200,23 @@ final class MatcherKindTest
             false,
         ];
 
+        // `whichProperty()` reads a public property: objects only, like `which()`.
+        yield 'whichProperty into a named object' => [
+            'whichProperty',
+            self::of(new Atomic\TNamedObject('Fixture\\Gate')),
+            false,
+        ];
+        yield 'whichProperty into a bare object' => ['whichProperty', self::of(new Atomic\TObject()), false];
+        yield 'whichProperty into a callable' => ['whichProperty', self::of(new Atomic\TCallable()), false];
+        yield 'whichProperty into an iterable' => [
+            'whichProperty',
+            self::of(new Atomic\TIterable([Type::getArrayKey(), Type::getMixed()])),
+            false,
+        ];
+        yield 'whichProperty into mixed' => ['whichProperty', Type::getMixed(), false];
+        yield 'whichProperty into string' => ['whichProperty', self::of(new Atomic\TString()), true];
+        yield 'whichProperty into an int' => ['whichProperty', self::of(new Atomic\TInt()), true];
+
         // Case is not meaningful in a PHP method name.
         yield 'the matcher name is case-insensitive' => ['INT', self::of(new Atomic\TString()), true];
     }

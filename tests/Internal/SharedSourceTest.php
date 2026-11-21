@@ -12,7 +12,7 @@ use Testo\Test;
  * The analyser-independent logic exists twice — here and in
  * `rasuvaeff/understudy-phpstan` — and the two copies must not drift apart.
  *
- * `Cardinality`, `ClosureShape` and `VerbNames` read nothing but
+ * `Cardinality`, `ClosureShape`, `RestTail` and `VerbNames` read nothing but
  * php-parser nodes and strings. Each plugin carries its own copy, because
  * neither depends on the other and the core is not the place for code that
  * needs php-parser. Two copies of a rule with nobody comparing them is how
@@ -20,7 +20,7 @@ use Testo\Test;
  * same complaint split in two.
  *
  * The comparison has to work across two repositories with no shared CI, so
- * it is a fingerprint rather than a diff: the token stream of the three
+ * it is a fingerprint rather than a diff: the token stream of the four
  * files, with comments and whitespace dropped and the analyser's namespace
  * segment replaced by a placeholder. Comments may differ — each copy speaks
  * about its own analyser — and nothing else may. `PhpToken` rather than a
@@ -36,9 +36,9 @@ use Testo\Test;
 #[CoversNothing]
 final class SharedSourceTest
 {
-    private const string FINGERPRINT = 'ce839377a11756cbee01fc641f83449599282dec47f84f9412ba41736ce09e42';
+    private const string FINGERPRINT = '9c9ce06f0a87b33f4206090d44fe34acf84a7bca136d1bc264b1399b6cacf9dc';
 
-    private const array FILES = ['Cardinality.php', 'ClosureShape.php', 'VerbNames.php'];
+    private const array FILES = ['Cardinality.php', 'ClosureShape.php', 'RestTail.php', 'VerbNames.php'];
 
     public function theSharedCopiesMatchTheSibling(): void
     {

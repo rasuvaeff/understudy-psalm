@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Rasuvaeff\Understudy\Psalm;
 
+use Psalm\Config;
 use Psalm\Plugin\PluginEntryPointInterface;
 use Psalm\Plugin\RegistrationInterface;
 use SimpleXMLElement;
@@ -35,7 +36,9 @@ final class Plugin implements PluginEntryPointInterface
         require_once __DIR__ . '/Internal/ClosureShape.php';
         require_once __DIR__ . '/Internal/Cardinality.php';
         require_once __DIR__ . '/Internal/MatcherKind.php';
+        require_once __DIR__ . '/Internal/RestTail.php';
         require_once __DIR__ . '/Issue/UnderstudyMisuse.php';
+        require_once __DIR__ . '/Issue/UnderstudyRestSuggestion.php';
         require_once __DIR__ . '/SpecificationScope.php';
         require_once __DIR__ . '/MatcherArgument.php';
         require_once __DIR__ . '/SpecificationRules.php';
@@ -46,6 +49,12 @@ final class Plugin implements PluginEntryPointInterface
         require_once __DIR__ . '/BuilderReturnType.php';
         require_once __DIR__ . '/StaticBuilderReturnType.php';
         require_once __DIR__ . '/CaptorRecorder.php';
+
+        // A suggestion is information, not an error, at every errorLevel —
+        // including 1, where a `PluginIssue`'s ERROR_LEVEL would still make it
+        // one. Set only when the project's config does not name the issue
+        // itself: a `<PluginIssue name="UnderstudyRestSuggestion" …/>` wins.
+        Config::getInstance()->safeSetCustomErrorLevel('UnderstudyRestSuggestion', Config::REPORT_INFO);
 
         $registration->registerHooksFromClass(SpecificationScope::class);
         $registration->registerHooksFromClass(MatcherArgument::class);
