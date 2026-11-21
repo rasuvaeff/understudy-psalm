@@ -274,8 +274,10 @@ final class MatcherSuppressionIntegrationTest
         $control = $this->runPsalm('psalm-without-plugin.xml', 'Targets');
 
         Assert::true(\in_array('UndefinedInterfaceMethod', $this->typesIn($control, 'Right.php'), strict: true));
+        // `InvalidArgument` is not a control: from understudy 1.2.0 the core
+        // types `when()` by its closure, so plain Psalm reports `returns()`
+        // with a value the method cannot return as well (#70).
         Assert::false(\in_array('UnderstudyMisuse', $this->typesIn($control, 'Wrong.php'), strict: true));
-        Assert::false(\in_array('InvalidArgument', $this->typesIn($control, 'Wrong.php'), strict: true));
     }
 
     public function theWireShapeIsReadFromTheConstructor(): void
