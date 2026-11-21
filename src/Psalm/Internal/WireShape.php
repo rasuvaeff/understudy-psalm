@@ -202,13 +202,20 @@ final class WireShape
             return $open;
         }
 
-        /** @var array<string, true>|null $definite */
-        $definite = null;
+        // Starts empty, not null: a union with no atomic types (`never`,
+        // `void`) never enters the loop and keeps it, which is exactly what
+        // the old `$definite ?? []` fallback produced. A nullable `$definite`
+        // would force every psalm version to prove the loop runs at least
+        // once — the stubs for `getAtomicTypes()` disagree about emptiness
+        // between 6.19 and 7.x.
+        $definite = [];
         $possible = [];
+        $first = true;
 
         foreach ($type->getAtomicTypes() as $atomic) {
             if ($atomic instanceof TArray && $atomic->isEmptyArray()) {
                 $definite = [];
+                $first = false;
 
                 continue;
             }
@@ -228,8 +235,9 @@ final class WireShape
                 }
             }
 
-            if ($definite === null) {
+            if ($first) {
                 $definite = $always;
+                $first = false;
 
                 continue;
             }
@@ -241,7 +249,7 @@ final class WireShape
             }
         }
 
-        return ['definite' => $definite ?? [], 'possible' => $possible, 'open' => false];
+        return ['definite' => $definite, 'possible' => $possible, 'open' => false];
     }
 
     private static function shape(string $class, Union $doubles): Union
