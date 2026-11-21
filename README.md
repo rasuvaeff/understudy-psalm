@@ -95,7 +95,8 @@ everything Psalm has to say about it.
 
 | Reported as | For |
 |---|---|
-| `UnderstudyMisuse` | A matcher whose kind the parameter can never accept: `Arg::int()`, `float()`, `string()` and `bool()` by their kind; `containing()` against anything that cannot be an array; `count()` against a parameter that holds neither an array nor an object; `which()` against one that holds no object; `instanceOf(Foo::class)` — written out — and a `Captor<Foo>`'s `capture()` against a parameter that holds no object, or only objects of a class unrelated to `Foo`. An interface on either side is never judged: a double of a final class can still implement it. A closure that specifies nothing, or two calls, or calls a static method. Cardinality no run can satisfy. `verify()` arguments that contradict each other. |
+| `UnderstudyMisuse` | A matcher whose kind the parameter can never accept: `Arg::int()`, `float()`, `string()` and `bool()` by their kind; `containing()` against anything that cannot be an array; `count()` against a parameter that holds neither an array nor an object; `which()` and `whichProperty()` against one that holds no object; `instanceOf(Foo::class)` — written out — and a `Captor<Foo>`'s `capture()` against a parameter that holds no object, or only objects of a class unrelated to `Foo`. An interface on either side is never judged: a double of a final class can still implement it. A closure that specifies nothing, or two calls, or calls a static method. Cardinality no run can satisfy. `verify()` arguments that contradict each other. |
+| `UnderstudyRestSuggestion` (`info`) | A suggestion, not a mistake: three or more `Arg::any()` at the end of a specified call, which `Arg::rest()` says in one word. Only where the two are the same specification — never for a method with a variadic parameter (the `any()` run pins the tail's length, `rest()` does not), never with a named or unpacked argument, and never when the call spells fewer arguments than the method requires or more than it declares. Reported at `info` (shown with `--show-info=true`) unless your `psalm.xml` names the issue — `<PluginIssue name="UnderstudyRestSuggestion" errorLevel="suppress"/>` or `"error"` — in which case your level stands. |
 | Psalm's own `InvalidArgument` | `returns()` and `answers()` against the method being specified. The plugin does not check these — it fills in the builder's template parameter, and `WhenBuilder<TReturn>` already declares `returns(TReturn ...)`. Psalm does the rest. |
 | Psalm's own method and argument diagnostics | `Understudy::for(A::class, B::class)`, typed `A&B` when every argument is a written-out `::class` and every one after the first an interface: the methods of `B` exist on the double, and a specification of one of them is checked like any other. |
 | Psalm's own array and method diagnostics | `wire()`, whose shape is read from the named class's constructor: an unknown key is an error, and each double is typed as its contract — an intersection parameter keeps its intersection, because the core builds one double for all of it. A key exists only where the core builds a double: a parameter passed through `$overrides` and a variadic tail have none, and a class parameter with a default may keep that default instead (`PossiblyUndefinedArrayOffset`); overrides whose keys are not known make every key possibly undefined. A class the core refuses to wire, and a dynamic class-string, are left alone. |
@@ -119,11 +120,12 @@ judge a type whose values it cannot enumerate.
 
 | Type | Purpose |
 |---|---|
-| `UnderstudyMisuse` | The issue every diagnostic of this plugin is reported as. One type rather than one per rule: you either have understudy analysing your specifications or you do not, and needing to silence each rule separately would be a worse contract than needing to silence none. |
+| `UnderstudyMisuse` | The issue every mistake this plugin finds is reported as. One type rather than one per rule: you either have understudy analysing your specifications or you do not, and needing to silence each rule separately would be a worse contract than needing to silence none. |
+| `UnderstudyRestSuggestion` | The one suggestion, kept apart from the mistakes so that its level is yours to choose: `info` by default, whatever `errorLevel` says. |
 | `Plugin` | The entry point Psalm loads, registered through `extra.psalm.pluginClass`. Nothing else in this package is public — the handlers it registers are `@internal`, and what they decide is the plugin's behaviour, not its API. |
 
-Both are stable: they are the two names a consumer writes down — one in
-`psalm.xml`, one in `issueHandlers` — and renaming either would silently stop a
+All three are stable: they are the names a consumer writes down — the plugin
+in `psalm.xml`, the issues in `issueHandlers` — and renaming any would silently stop a
 suppression somebody wrote. The **wording** of a diagnostic is not stable and a
 patch release may reword one; assert on the issue type, never on the sentence.
 
