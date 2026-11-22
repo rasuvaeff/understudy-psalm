@@ -1,0 +1,8 @@
+{
+    "config": {
+        "vendor-dir": "../../../../vendor"
+    },
+    "require": {
+        "rasuvaeff/understudy": "^1.0"
+    }
+}

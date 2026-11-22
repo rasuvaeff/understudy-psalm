@@ -9,7 +9,7 @@ composer require --dev rasuvaeff/understudy-psalm
 vendor/bin/psalm-plugin enable rasuvaeff/understudy-psalm
 ```
 
-Namespace: `Rasuvaeff\Understudy\Psalm`. Requires PHP 8.3 - 8.5 and
+Namespace: `Rasuvaeff\Understudy\Psalm`. Requires PHP 8.3 - 8.6 and
 `vimeo/psalm ^6.16`.
 
 ## API
